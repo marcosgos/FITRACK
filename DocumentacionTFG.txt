@@ -1,0 +1,84 @@
+
+-----------------------------------------------------------------------------------------------
+Ideas para la aplicacion:
+    - Pasos Diarios
+    - Objetivo de pasos al dia
+    - Calorias quemadas totales del dia
+    - Diferentes tipos de entrenamientos(ciclismo, correr, natacion):
+    	- Frecuencia Cardiaca
+    	- Cronometro para registro de tiempos
+    	- Pasos echos en ese entrenamiento
+    	- Calorias quemadas
+    - Registro horas de sueño
+    - Frecuencia cardica actual(solo registra si pulsas la opcion) la mas alta, mas baja y la media.
+    - Presion arterial actual (solo registra si pulsas la opcion) la mas alta, mas baja y la media.
+    - H2O es un recordatorio para que bebas agua
+    - Condiciones ambientales(tiempo actual)
+    - Musica
+    - Cronometro
+    - Temporizador
+    - Encuentra tu telefono
+    - Ajustes
+    - Peso
+    - Altura
+    - Edad
+    - Genero
+    - Nombre Apellidos
+    - Correo y contraseña
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+GitHub de Ejercicios (1324 ejercicios):
+    https://github.com/hasaneyldrm/exercises-dataset/tree/main
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+Instalacion de Mysql:
+    sudo apt update && sudo apt upgrade -y
+    sudo apt install mariadb-server -y
+    sudo mysql_secure_installation 
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+Creacion de la base de datos y usuario:
+    CREATE DATABASE fitrack;
+    CREATE USER 'apiusuario'@'localhost' IDENTIFIED BY 'apiusuario';
+    GRANT ALL PRIVILEGES ON fitrack.* TO 'apiusuario'@'localhost';
+    FLUSH PRIVILEGES;
+    EXIT;
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+Instalacion de python:
+    sudo apt install python3-pip -y
+    pip3 install flask mysql-connector-python
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+#Probar la aplicacion:
+	python3 FitrackAPI.py
+	curl http://localhost:5000/usuarios
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+# Instalar cloudflared:
+	wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
+	sudo mv cloudflared-linux-arm64 /usr/local/bin/cloudflared
+	sudo chmod +x /usr/local/bin/cloudflared
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+# Arrancar el túnel temporal:
+	cloudflared tunnel --url http://localhost:5000
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+#Como arrancar la aplicacion en general
+	1º Paso: Iniciar la aplicacion de python
+	python3 app.py
+	2º Paso: Iniciar el tunel temporal de cloudfare
+	cloudflared tunnel --url http://localhost:5000
+	3º Paso: El url temnporal que nos facilita cloudfare con lo que quieras /usuarios o /
+	https://url/usuarios
+	4º Paso: Deberia funcionar
+-----------------------------------------------------------------------------------------------
