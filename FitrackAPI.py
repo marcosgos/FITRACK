@@ -4,19 +4,19 @@ import os
 
 app = Flask(__name__)
 
+CA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ca.pem")
+
 
 def get_connection():
     return mysql.connector.connect(
-        host="fitrack-db-marcutigon-1b0a.f.aivencloud.com",
-        port=15485,
-        user="avnadmin",
-        import os
-        DB_PASSWORD = os.environ["AIVEN_PASSWORD"],
-        database="fitrack",
-        ssl_ca="ca.pem",
+        host=os.environ.get("AIVEN_HOST", "fitrack-db-marcutigon-1b0a.f.aivencloud.com"),
+        port=int(os.environ.get("AIVEN_PORT", 15485)),
+        user=os.environ.get("AIVEN_USER", "avnadmin"),
+        password=os.environ["AIVEN_PASSWORD"],
+        database=os.environ.get("AIVEN_DB", "fitrack"),
+        ssl_ca=CA_PATH,
         ssl_verify_cert=True
     )
-
 
 @app.route('/usuarios', methods=['GET'])
 def get_usuarios():
