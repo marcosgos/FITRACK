@@ -1,15 +1,20 @@
 from flask import Flask, jsonify, request
 import mysql.connector
+import os
 
 app = Flask(__name__)
 
 
 def get_connection():
     return mysql.connector.connect(
-        host="localhost",
-        user="apiusuario",
-        password="apiusuario",
-        database="fitrack"
+        host="fitrack-db-marcutigon-1b0a.f.aivencloud.com",
+        port=15485,
+        user="avnadmin",
+        import os
+        DB_PASSWORD = os.environ["AIVEN_PASSWORD"],
+        database="fitrack",
+        ssl_ca="ca.pem",
+        ssl_verify_cert=True
     )
 
 
