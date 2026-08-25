@@ -18,6 +18,34 @@ def get_connection():
         ssl_verify_cert=True
     )
 
+@app.route('/login', methods=['POST'])
+def login():
+    body = request.get_json()
+    correo = body.get('correo')
+    contrasena = body.get('contrasena')
+
+    if not correo or not contrasena:
+        return jsonify({"error": "Correo y contraseña son obligatorios"}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT id_usuario, nombre, edad, peso, correo, objetivo_pasos, fecha_registro, contrasena "
+        "FROM usuarios WHERE correo = %s",
+        (correo,)
+    )
+    usuario = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if usuario is None or usuario['contrasena'] != contrasena:
+        return jsonify({"error": "Correo o contraseña incorrectos"}), 401
+
+    # No devolvemos la contraseña en la respuesta
+    usuario.pop('contrasena')
+    return jsonify(usuario), 200
+
+
 @app.route('/usuarios', methods=['GET'])
 def get_usuarios():
     conn = get_connection()
