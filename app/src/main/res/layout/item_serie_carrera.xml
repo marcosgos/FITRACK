@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_input_outline"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:layout_marginBottom="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:id="@+id/tvNumeroSerie"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnEliminarSerie"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="0dp"
+            app:backgroundTint="@color/fittrack_chip_bg"
+            app:cornerRadius="14dp"
+            app:icon="@drawable/ic_close"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconTint="@null"
+            app:iconSize="12dp"
+            app:elevation="0dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TIEMPO"
+                android:textColor="@color/fittrack_text_gray"
+                android:textSize="10sp"
+                android:layout_marginBottom="6dp" />
+
+            <EditText
+                android:id="@+id/etTiempoSerie"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_input_outline"
+                android:hint="04:30"
+                android:textColorHint="@color/fittrack_hint_gray"
+                android:textColor="#FFFFFF"
+                android:inputType="text"
+                android:paddingHorizontal="12dp"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DISTANCIA KM"
+                android:textColor="@color/fittrack_text_gray"
+                android:textSize="10sp"
+                android:layout_marginBottom="6dp" />
+
+            <EditText
+                android:id="@+id/etDistanciaSerie"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_input_outline"
+                android:hint="1,0"
+                android:textColorHint="@color/fittrack_hint_gray"
+                android:textColor="#FFFFFF"
+                android:inputType="numberDecimal"
+                android:paddingHorizontal="12dp"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TIPO DE CARRERA / ANOTACIÓN"
+        android:textColor="@color/fittrack_text_gray"
+        android:textSize="10sp"
+        android:layout_marginBottom="6dp" />
+
+    <EditText
+        android:id="@+id/etAnotacionSerie"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_input_outline"
+        android:hint="Series en pista"
+        android:textColorHint="@color/fittrack_hint_gray"
+        android:textColor="#FFFFFF"
+        android:paddingHorizontal="12dp"
+        android:textSize="14sp" />
+
+</LinearLayout>

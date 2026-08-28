@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fittrack_background">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="100dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="20dp">
+
+            <!-- CABECERA -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="24dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnVolver"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:padding="0dp"
+                    app:backgroundTint="@color/fittrack_chip_bg"
+                    app:cornerRadius="10dp"
+                    app:icon="@drawable/ic_back"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:iconTint="@null"
+                    app:elevation="0dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:text="NUEVO ENTRENAMIENTO"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+            </LinearLayout>
+
+            <!-- TIPO DE ENTRENAMIENTO -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Tipo de entrenamiento"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="10dp">
+
+                <Button
+                    android:id="@+id/chipCrossfit"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:text="CrossFit"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingHorizontal="18dp"
+                    app:backgroundTint="@color/fittrack_chip_bg"
+                    app:cornerRadius="20dp"
+                    app:elevation="0dp" />
+
+                <Button
+                    android:id="@+id/chipCarrera"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:text="Carrera"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingHorizontal="18dp"
+                    app:backgroundTint="@color/fittrack_chip_bg"
+                    app:cornerRadius="20dp"
+                    app:elevation="0dp" />
+
+                <Button
+                    android:id="@+id/chipLibre"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Libre"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingHorizontal="18dp"
+                    app:backgroundTint="@color/fittrack_chip_bg"
+                    app:cornerRadius="20dp"
+                    app:elevation="0dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="24dp">
+
+                <Button
+                    android:id="@+id/chipMixto"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:text="Mixto"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingHorizontal="18dp"
+                    app:backgroundTint="@color/fittrack_chip_bg"
+                    app:cornerRadius="20dp"
+                    app:elevation="0dp" />
+
+                <Button
+                    android:id="@+id/chipFuerza"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="Fuerza"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingHorizontal="18dp"
+                    app:backgroundTint="@color/fittrack_chip_bg"
+                    app:cornerRadius="20dp"
+                    app:elevation="0dp" />
+            </LinearLayout>
+
+            <!-- CONTENIDO: DESCRIPCION + DURACION (CrossFit / Libre / Mixto) -->
+            <LinearLayout
+                android:id="@+id/groupDescripcionDuracion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Descripción del entrenamiento"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
+
+                <EditText
+                    android:id="@+id/etDescripcion"
+                    android:layout_width="match_parent"
+                    android:layout_height="90dp"
+                    android:background="@drawable/bg_input_outline"
+                    android:gravity="top|start"
+                    android:hint="Describe el entrenamiento…"
+                    android:textColorHint="@color/fittrack_hint_gray"
+                    android:textColor="#FFFFFF"
+                    android:inputType="textMultiLine"
+                    android:padding="14dp"
+                    android:layout_marginBottom="20dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Duración"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- MODO MANUAL -->
+                <LinearLayout
+                    android:id="@+id/groupDuracionManual"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:background="@drawable/bg_input_outline"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="14dp">
+
+                        <EditText
+                            android:id="@+id/etMinutosManual"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@null"
+                            android:hint="45"
+                            android:textColorHint="@color/fittrack_hint_gray"
+                            android:textColor="#FFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:inputType="number"
+                            android:maxLength="3" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="minutos"
+                            android:textColor="@color/fittrack_text_gray"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvUsarCronometro"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:padding="4dp"
+                        android:text="←  Usar cronómetro en su lugar"
+                        android:textColor="@color/fittrack_text_gray"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- MODO CRONOMETRO -->
+                <LinearLayout
+                    android:id="@+id/groupCronometro"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/cardCronometro"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_input_outline"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:id="@+id/tvEstadoCronometro"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="ENTRENANDO · EN MARCHA"
+                            android:textColor="@color/fittrack_red"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.05"
+                            android:layout_marginBottom="6dp" />
+
+                        <TextView
+                            android:id="@+id/tvTiempoCronometro"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="00:00"
+                            android:textColor="#FFFFFF"
+                            android:textSize="40sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvDuracionGuardada"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:background="@drawable/bg_card_finalizado"
+                            android:paddingHorizontal="14dp"
+                            android:paddingVertical="6dp"
+                            android:textColor="@color/fittrack_green"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvEntrenamientoGuardado"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_card_finalizado"
+                        android:gravity="center"
+                        android:padding="14dp"
+                        android:text="✓  Entrenamiento guardado"
+                        android:textColor="@color/fittrack_green"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/rowBotonesCronometro"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnIniciarCronometro"
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:text="Iniciar cronómetro"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            app:backgroundTint="@color/fittrack_red"
+                            app:cornerRadius="10dp"
+                            app:elevation="0dp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/rowPausarFinalizar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <Button
+                            android:id="@+id/btnPausar"
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            android:text="Pausar"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            app:backgroundTint="@color/fittrack_chip_bg"
+                            app:cornerRadius="10dp"
+                            app:elevation="0dp" />
+
+                        <Button
+                            android:id="@+id/btnFinalizar"
+                            android:layout_width="0dp"
+                            android:layout_height="52dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:text="Finalizar"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            app:backgroundTint="@color/fittrack_red"
+                            app:cornerRadius="10dp"
+                            app:elevation="0dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- CARRERA -->
+            <LinearLayout
+                android:id="@+id/groupCarrera"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Series de carrera"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvContadorSeries"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1 serie"
+                        android:textColor="@color/fittrack_text_gray"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/contenedorSeries"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/btnAnadirSerie"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_input_outline"
+                    android:gravity="center"
+                    android:text="+  Añadir serie"
+                    android:textColor="@color/fittrack_red"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- FUERZA -->
+            <LinearLayout
+                android:id="@+id/groupFuerza"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Ejercicios de fuerza"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:id="@+id/contenedorEjercicios"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/btnAnadirEjercicio"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_input_outline"
+                    android:gravity="center"
+                    android:text="+  Añadir ejercicio"
+                    android:textColor="@color/fittrack_red"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- PR / MARCA PERSONAL (solo CrossFit) -->
+            <LinearLayout
+                android:id="@+id/groupPR"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_input_outline"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginTop="20dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <Switch
+                        android:id="@+id/switchPR"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="¿Es un PR / marca personal?"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Registra tu récord en este entreno"
+                            android:textColor="@color/fittrack_text_gray"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/groupCamposPR"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="14dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="EJERCICIO"
+                        android:textColor="@color/fittrack_text_gray"
+                        android:textSize="11sp"
+                        android:layout_marginBottom="6dp" />
+
+                    <EditText
+                        android:id="@+id/etEjercicioPR"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_input_outline"
+                        android:hint="Clean &amp; Jerk"
+                        android:textColorHint="@color/fittrack_hint_gray"
+                        android:textColor="#FFFFFF"
+                        android:paddingHorizontal="12dp"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="MARCA"
+                        android:textColor="@color/fittrack_text_gray"
+                        android:textSize="11sp"
+                        android:layout_marginBottom="6dp" />
+
+                    <EditText
+                        android:id="@+id/etMarcaPR"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_input_outline"
+                        android:hint="90 kg · 1 rep"
+                        android:textColorHint="@color/fittrack_hint_gray"
+                        android:textColor="#FFFFFF"
+                        android:paddingHorizontal="12dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- BOTON GUARDAR FIJO ABAJO -->
+    <Button
+        android:id="@+id/btnGuardarEntrenamiento"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:layout_margin="20dp"
+        android:text="Guardar entrenamiento"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        app:backgroundTint="@color/fittrack_red"
+        app:cornerRadius="12dp"
+        app:elevation="4dp" />
+
+</FrameLayout>
