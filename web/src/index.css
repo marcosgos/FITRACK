@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Tokens de superficie (negro base + capas de blanco translúcido)
+   Se exponen como variables CSS para poder tematizar como en shadcn/ui.
+   ========================================================================== */
+@layer base {
+  :root {
+    --surface: 18 18 18; /* #121212 — tarjetas sobre el negro */
+    --surface-2: 26 26 26; /* #1A1A1A — capas superiores */
+    --border: 255 255 255; /* usado con /8 => blanco al 8% */
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink text-white font-sans antialiased;
+    /* Degradado sutil del hero anclado arriba */
+    background-image: theme('backgroundImage.hero-glow');
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  /* Titulares: Saira itálica condensada, en mayúsculas */
+  h1, h2 {
+    @apply font-display italic uppercase tracking-tight;
+  }
+
+  ::selection {
+    @apply bg-red text-white;
+  }
+}
+
+@layer components {
+  /* Borde translúcido reutilizable (blanco al 8%) */
+  .border-hairline {
+    @apply border border-white/[0.08];
+  }
+
+  /* Etiqueta "eyebrow" de sección: mayúsculas pequeñas con tracking */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em];
+  }
+}
