@@ -29,11 +29,21 @@ CA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ca.pem")
 GOOGLE_WEB_CLIENT_ID = os.environ.get("GOOGLE_WEB_CLIENT_ID")
 
 # Reusable SQL fragments so date formatting stays consistent everywhere.
+# FIX: mysql-connector-python's C extension scans the raw SQL text with a
+# dumb regex (`%s`) to find placeholders to bind params against — with no
+# `%%`-escaping support for positional params (that only exists for the
+# dict/named-param path). A literal '%s' inside a DATE_FORMAT mask (from
+# '%H:%i:%s', the seconds specifier) was being mistaken for an extra
+# placeholder, raising "Not enough parameters for the SQL statement" on
+# every query that combined USER_COLUMNS with a real bound parameter
+# (login, get_user, /auth/google...). Fix: use '%S' instead of '%s' for
+# seconds — MySQL treats them as exact synonyms, but '%S' doesn't match
+# the connector's placeholder regex.
 USER_COLUMNS = (
     "user_id, name, "
     "DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, "
     "sex, height_cm, weight_kg, email, daily_step_goal, "
-    "DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at"
+    "DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%S') AS created_at"
 )
 
 
@@ -371,7 +381,7 @@ def get_workouts(user_id):
     try:
         cursor.execute(
             "SELECT w.workout_id, "
-            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%s') AS started_at, "
+            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%S') AS started_at, "
             "w.duration_seconds, w.avg_heart_rate, w.steps, w.calories_burned, "
             "w.notes, w.is_personal_record, w.pr_exercise, w.pr_result, "
             "t.code AS type_code, t.name AS type_name "
@@ -394,7 +404,7 @@ def get_workout_detail(user_id, workout_id):
     try:
         cursor.execute(
             "SELECT w.workout_id, "
-            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%s') AS started_at, "
+            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%S') AS started_at, "
             "w.duration_seconds, w.avg_heart_rate, w.steps, w.calories_burned, "
             "w.notes, w.is_personal_record, w.pr_exercise, w.pr_result, "
             "t.code AS type_code, t.name AS type_name "
@@ -537,7 +547,7 @@ def get_full_database():
 
         cursor.execute(
             "SELECT w.workout_id, w.user_id, w.workout_type_id, "
-            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%s') AS started_at, "
+            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%S') AS started_at, "
             "w.duration_seconds, w.avg_heart_rate, w.steps, w.calories_burned, "
             "w.notes, w.is_personal_record, w.pr_exercise, w.pr_result, "
             "t.code AS type_code, t.name AS type_name "
