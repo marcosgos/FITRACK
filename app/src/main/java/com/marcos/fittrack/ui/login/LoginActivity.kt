@@ -65,6 +65,7 @@ class LoginActivity : AppCompatActivity() {
                 } catch (e: GoogleAuthHelper.CancelledException) {
                     // El usuario cerró el selector de cuentas: no hacemos nada.
                 } catch (e: GetCredentialException) {
+                    android.util.Log.e("GoogleLogin", "Error real: ${e.type}", e)
                     etContrasena.error = "No se pudo iniciar sesión con Google"
                 }
             }

@@ -4,11 +4,10 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
-// NUEVO (login con Google): lee el Web Client ID desde local.properties
-// (no versionado) en vez de hardcodearlo en el código fuente.
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) file.inputStream().use(::load)
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
 }
 
 android {
