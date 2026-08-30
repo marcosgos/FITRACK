@@ -14,7 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.marcos.fittrack.R
-import com.marcos.fittrack.data.model.EntrenamientoApi
+import com.marcos.fittrack.data.model.Workout
 import com.marcos.fittrack.ui.entrenamiento.NuevoEntrenamientoActivity
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -101,7 +101,7 @@ class HomeActivity : AppCompatActivity() {
                 }
                 is EstadoHome.Exito -> {
                     montarResumenSemana(estado.datos.entrenamientosSemana)
-                    montarPasos(estado.datos.actividadHoy?.pasos_diarios ?: 0)
+                    montarPasos(estado.datos.actividadHoy?.steps ?: 0)
                     montarHistorial(estado.datos.entrenamientosSemana)
                 }
                 is EstadoHome.Error -> {
@@ -121,7 +121,7 @@ class HomeActivity : AppCompatActivity() {
         tvLogo.text = spannable
     }
 
-    private fun montarResumenSemana(entrenamientos: List<EntrenamientoApi>) {
+    private fun montarResumenSemana(entrenamientos: List<Workout>) {
         if (entrenamientos.isEmpty()) {
             tvResumenVacio.visibility = View.VISIBLE
             groupResumenConDatos.visibility = View.GONE
@@ -131,7 +131,7 @@ class HomeActivity : AppCompatActivity() {
             groupResumenConDatos.visibility = View.VISIBLE
             tvNumeroEntrenos.text = entrenamientos.size.toString()
 
-            val minutosTotales = entrenamientos.sumOf { it.duracion_segundos / 60 }
+            val minutosTotales = entrenamientos.sumOf { it.durationSeconds / 60 }
             tvTiempoTotal.text = if (minutosTotales >= 60) {
                 "${minutosTotales / 60}h${String.format("%02d", minutosTotales % 60)}"
             } else {
@@ -146,7 +146,7 @@ class HomeActivity : AppCompatActivity() {
         tvPasosHoy.text = "${"%,d".format(pasosHoy).replace(",", ".")} pasos hoy"
     }
 
-    private fun montarHistorial(entrenamientos: List<EntrenamientoApi>) {
+    private fun montarHistorial(entrenamientos: List<Workout>) {
         contenedorHistorial.removeAllViews()
 
         if (entrenamientos.isEmpty()) {
@@ -155,7 +155,7 @@ class HomeActivity : AppCompatActivity() {
         }
         tvHistorialVacio.visibility = View.GONE
 
-        val ordenados = entrenamientos.sortedByDescending { it.fecha_inicio }
+        val ordenados = entrenamientos.sortedByDescending { it.startedAt }
         val inflater = LayoutInflater.from(this)
 
         for (entrenamiento in ordenados) {
@@ -167,11 +167,11 @@ class HomeActivity : AppCompatActivity() {
             val tvDuracion = vista.findViewById<TextView>(R.id.tvDuracionEntrenamiento)
 
             viewDot.backgroundTintList = android.content.res.ColorStateList.valueOf(
-                Color.parseColor(colorParaTipo(entrenamiento.tipo))
+                Color.parseColor(colorParaTipo(entrenamiento.typeCode))
             )
-            tvNombre.text = entrenamiento.tipo
-            tvFecha.text = formatearFecha(entrenamiento.fecha_inicio)
-            tvDuracion.text = "${entrenamiento.duracion_segundos / 60} min"
+            tvNombre.text = entrenamiento.typeName
+            tvFecha.text = formatearFecha(entrenamiento.startedAt)
+            tvDuracion.text = "${entrenamiento.durationSeconds / 60} min"
 
             contenedorHistorial.addView(vista)
         }
@@ -188,13 +188,15 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun colorParaTipo(tipo: String): String {
-        return when (tipo.lowercase()) {
+    private fun colorParaTipo(codigoTipo: String): String {
+        return when (codigoTipo.lowercase()) {
             "crossfit" -> "#E31E24"
-            "carrera" -> "#F5A623"
-            "mixto" -> "#9B59B6"
-            "fuerza" -> "#3B82F6"
-            else -> "#8A8A8A" // Libre u otros
+            "running" -> "#F5A623"
+            "cycling" -> "#16A085"
+            "swimming" -> "#2980B9"
+            "mixed" -> "#9B59B6"
+            "strength" -> "#3B82F6"
+            else -> "#8A8A8A" // free u otros
         }
     }
 

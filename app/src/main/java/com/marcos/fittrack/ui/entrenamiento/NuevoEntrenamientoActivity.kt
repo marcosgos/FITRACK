@@ -10,10 +10,13 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.Switch
 import android.widget.TextView
+import com.google.android.material.switchmaterial.SwitchMaterial
 import androidx.appcompat.app.AppCompatActivity
 import com.marcos.fittrack.R
+import com.marcos.fittrack.data.model.WorkoutExercise
+import com.marcos.fittrack.data.model.WorkoutRequest
+import com.marcos.fittrack.data.model.WorkoutSegment
 import androidx.activity.viewModels
 
 class NuevoEntrenamientoActivity : AppCompatActivity() {
@@ -36,7 +39,7 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
     private lateinit var groupFuerza: LinearLayout
     private lateinit var groupPR: LinearLayout
     private lateinit var groupCamposPR: LinearLayout
-    private lateinit var switchPR: Switch
+    private lateinit var switchPR: SwitchMaterial
 
     private lateinit var etDescripcion: EditText
     private lateinit var groupDuracionManual: LinearLayout
@@ -258,24 +261,58 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
 
     private fun configurarGuardar() {
         btnGuardarEntrenamiento.setOnClickListener {
-            val duracionMinutos: Int
-
-            when (tipoSeleccionado) {
-                TipoEntrenamiento.CARRERA -> duracionMinutos = recogerDatosCarrera().second
-                TipoEntrenamiento.FUERZA -> duracionMinutos = recogerDatosFuerza().second
-                else -> duracionMinutos = obtenerDuracionEnMinutos()
-            }
-
-            val nombreTipo = when (tipoSeleccionado) {
-                TipoEntrenamiento.CROSSFIT -> "CrossFit"
-                TipoEntrenamiento.CARRERA -> "Carrera"
-                TipoEntrenamiento.LIBRE -> "Libre"
-                TipoEntrenamiento.MIXTO -> "Mixto"
-                TipoEntrenamiento.FUERZA -> "Fuerza"
-            }
-
-            viewModel.guardarEntrenamiento(idUsuario, nombreTipo, duracionMinutos)
+            viewModel.guardarEntrenamiento(idUsuario, construirRequest())
         }
+    }
+
+    /** Código estable del tipo, tal y como lo espera la API (workout_types.code). */
+    private fun codigoTipo(): String = when (tipoSeleccionado) {
+        TipoEntrenamiento.CROSSFIT -> "crossfit"
+        TipoEntrenamiento.CARRERA -> "running"
+        TipoEntrenamiento.LIBRE -> "free"
+        TipoEntrenamiento.MIXTO -> "mixed"
+        TipoEntrenamiento.FUERZA -> "strength"
+    }
+
+    /** Reúne todo lo que hay en pantalla según el tipo y arma el WorkoutRequest. */
+    private fun construirRequest(): WorkoutRequest {
+        val ejercicios = if (tipoSeleccionado == TipoEntrenamiento.FUERZA) recogerEjerciciosFuerza() else emptyList()
+        val segmentos = if (tipoSeleccionado == TipoEntrenamiento.CARRERA) recogerSegmentosCarrera() else emptyList()
+
+        val duracionSegundos = when (tipoSeleccionado) {
+            TipoEntrenamiento.CARRERA -> segmentos.sumOf { it.durationSeconds }
+            TipoEntrenamiento.FUERZA -> ejercicios.size * 8 * 60 // estimación: 8 min por ejercicio
+            else -> obtenerDuracionEnMinutos() * 60
+        }
+
+        // Descripción/notas para los tipos que la muestran.
+        val notas = when (tipoSeleccionado) {
+            TipoEntrenamiento.CROSSFIT, TipoEntrenamiento.LIBRE, TipoEntrenamiento.MIXTO ->
+                etDescripcion.text.toString().trim().ifBlank { null }
+            else -> null
+        }
+
+        // Record personal (solo CrossFit, y solo si el switch está activado).
+        val esPR = tipoSeleccionado == TipoEntrenamiento.CROSSFIT && switchPR.isChecked
+        val ejercicioPR = if (esPR) findViewById<EditText>(R.id.etEjercicioPR).text.toString().trim().ifBlank { null } else null
+        val marcaPR = if (esPR) findViewById<EditText>(R.id.etMarcaPR).text.toString().trim().ifBlank { null } else null
+
+        return WorkoutRequest(
+            typeCode = codigoTipo(),
+            startedAt = fechaHoraActual(),
+            durationSeconds = duracionSegundos,
+            notes = notas,
+            isPersonalRecord = esPR,
+            prExercise = ejercicioPR,
+            prResult = marcaPR,
+            exercises = ejercicios,
+            segments = segmentos
+        )
+    }
+
+    private fun fechaHoraActual(): String {
+        val formato = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        return formato.format(java.util.Date())
     }
 
     // ---------- CARRERA ----------
@@ -367,35 +404,60 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
 
 // ---------- RECOGER DATOS PARA GUARDAR ----------
 
-    private fun recogerDatosCarrera(): Pair<String, Int> {
-        var minutosTotales = 0
-        val numeroSeries = contenedorSeries.childCount
-        for (i in 0 until numeroSeries) {
+    /** Lee cada serie de carrera: tiempo (mm:ss → segundos), distancia (km → metros) y anotación. */
+    private fun recogerSegmentosCarrera(): List<WorkoutSegment> {
+        val segmentos = mutableListOf<WorkoutSegment>()
+        for (i in 0 until contenedorSeries.childCount) {
             val vista = contenedorSeries.getChildAt(i)
+
             val tiempo = vista.findViewById<EditText>(R.id.etTiempoSerie).text.toString()
             val partes = tiempo.split(":")
-            if (partes.size == 2) {
-                val min = partes[0].toIntOrNull() ?: 0
-                val seg = partes[1].toIntOrNull() ?: 0
-                minutosTotales += min + (seg / 60)
-            }
+            val segundos = if (partes.size == 2) {
+                (partes[0].toIntOrNull() ?: 0) * 60 + (partes[1].toIntOrNull() ?: 0)
+            } else 0
+
+            val distanciaTexto = vista.findViewById<EditText>(R.id.etDistanciaSerie).text.toString()
+                .replace(",", ".").trim()
+            val metros = distanciaTexto.toDoubleOrNull()?.let { (it * 1000).toInt() }
+
+            val anotacion = vista.findViewById<EditText>(R.id.etAnotacionSerie).text.toString().trim()
+
+            segmentos.add(
+                WorkoutSegment(
+                    position = i + 1,
+                    durationSeconds = segundos,
+                    distanceM = metros,
+                    note = anotacion.ifBlank { null }
+                )
+            )
         }
-        val descripcion = if (numeroSeries == 1) "Carrera · 1 serie" else "Carrera · $numeroSeries series"
-        return Pair(descripcion, minutosTotales)
+        return segmentos
     }
 
-    private fun recogerDatosFuerza(): Pair<String, Int> {
-        val numeroEjercicios = contenedorEjercicios.childCount
-        val nombres = mutableListOf<String>()
-        for (i in 0 until numeroEjercicios) {
+    /** Lee cada ejercicio de fuerza: nombre, series, reps y peso. */
+    private fun recogerEjerciciosFuerza(): List<WorkoutExercise> {
+        val ejercicios = mutableListOf<WorkoutExercise>()
+        for (i in 0 until contenedorEjercicios.childCount) {
             val vista = contenedorEjercicios.getChildAt(i)
             val nombre = vista.findViewById<EditText>(R.id.etNombreEjercicio).text.toString().trim()
-            if (nombre.isNotEmpty()) nombres.add(nombre)
+            if (nombre.isEmpty()) continue
+
+            val series = vista.findViewById<TextView>(R.id.tvSeriesValor).text.toString().toIntOrNull() ?: 0
+            val reps = vista.findViewById<TextView>(R.id.tvRepsValor).text.toString().toIntOrNull() ?: 0
+            val peso = vista.findViewById<TextView>(R.id.tvPesoValor).text.toString()
+                .replace(",", ".").toDoubleOrNull() ?: 0.0
+
+            ejercicios.add(
+                WorkoutExercise(
+                    position = i + 1,
+                    name = nombre,
+                    sets = series,
+                    reps = reps,
+                    weightKg = peso
+                )
+            )
         }
-        val descripcion = if (nombres.isNotEmpty()) "Fuerza · ${nombres.joinToString(", ")}" else "Fuerza · $numeroEjercicios ejercicios"
-        // Sin cronómetro en este tipo: estimamos con un valor fijo por ejercicio (ajustable)
-        val minutosEstimados = numeroEjercicios * 8
-        return Pair(descripcion, minutosEstimados)
+        return ejercicios
     }
 
     private fun observarEstadoGuardado() {

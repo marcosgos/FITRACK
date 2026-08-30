@@ -1,5 +1,14 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
+}
+
+// NUEVO (login con Google): lee el Web Client ID desde local.properties
+// (no versionado) en vez de hardcodearlo en el código fuente.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use(::load)
 }
 
 android {
@@ -16,6 +25,13 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // NUEVO: usado por GoogleAuthHelper como setServerClientId(...).
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\""
+        )
     }
 
     buildTypes {
@@ -28,6 +44,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    }
+    // NUEVO: hace falta activarlo explícitamente desde AGP 8 para generar BuildConfig.
+    buildFeatures {
+        buildConfig = true
     }
 }
 
@@ -45,4 +65,13 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.7")
+    // NUEVO (login con Google): lifecycleScope para lanzar la corrutina de
+    // Credential Manager desde las Activities.
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    // NUEVO: Credential Manager (API moderna recomendada por Google, sustituye
+    // a GoogleSignInClient) + el helper de Identity Services para parsear el
+    // Google ID token.
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 }

@@ -1,12 +1,45 @@
+"""
+FITRACK · REST API (Flask + MySQL/Aiven)
+
+English, transactional, and structured so new resources are easy to add.
+Dates are formatted in SQL (DATE_FORMAT) so the JSON shape is stable
+regardless of the Flask/JSON-encoder version:
+    dates      -> "YYYY-MM-DD"
+    datetimes  -> "YYYY-MM-DD HH:MM:SS"
+"""
+
 from flask import Flask, jsonify, request
+from werkzeug.security import generate_password_hash, check_password_hash
+# NUEVO (login con Google): verifica el ID token que manda la app tras el
+# flujo de Credential Manager, contra el Web Client ID de Google Cloud.
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 import mysql.connector
 import os
+from datetime import date, datetime
 
 app = Flask(__name__)
 
 CA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ca.pem")
 
+# NUEVO: Client ID de tipo "Web application" creado en Google Cloud Console.
+# Es el mismo valor que la app Android usa como setServerClientId(...) en
+# Credential Manager (GoogleAuthHelper.kt) — así el token que emite Google
+# se puede verificar aquí contra la misma audiencia.
+GOOGLE_WEB_CLIENT_ID = os.environ.get("GOOGLE_WEB_CLIENT_ID")
 
+# Reusable SQL fragments so date formatting stays consistent everywhere.
+USER_COLUMNS = (
+    "user_id, name, "
+    "DATE_FORMAT(date_of_birth, '%Y-%m-%d') AS date_of_birth, "
+    "sex, height_cm, weight_kg, email, daily_step_goal, "
+    "DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at"
+)
+
+
+# ---------------------------------------------------------------------
+#  Infrastructure
+# ---------------------------------------------------------------------
 def get_connection():
     return mysql.connector.connect(
         host=os.environ.get("AIVEN_HOST", "fitrack-db-marcutigon-1b0a.f.aivencloud.com"),
@@ -15,245 +48,520 @@ def get_connection():
         password=os.environ["AIVEN_PASSWORD"],
         database=os.environ.get("AIVEN_DB", "fitrack"),
         ssl_ca=CA_PATH,
-        ssl_verify_cert=True
+        ssl_verify_cert=True,
     )
 
+
+def compute_age(date_of_birth):
+    """Derive age from a 'YYYY-MM-DD' string (or None)."""
+    if not date_of_birth:
+        return None
+    try:
+        born = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return None
+    today = date.today()
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+
+def with_age(user):
+    """Attach a derived 'age' field to a user dict for client convenience."""
+    if user is not None:
+        user["age"] = compute_age(user.get("date_of_birth"))
+    return user
+
+
+# ---------------------------------------------------------------------
+#  Auth
+# ---------------------------------------------------------------------
 @app.route('/login', methods=['POST'])
 def login():
-    body = request.get_json()
-    correo = body.get('correo')
-    contrasena = body.get('contrasena')
+    body = request.get_json(silent=True) or {}
+    email = body.get('email')
+    password = body.get('password')
 
-    if not correo or not contrasena:
-        return jsonify({"error": "Correo y contraseña son obligatorios"}), 400
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT id_usuario, nombre, edad, peso, correo, objetivo_pasos, fecha_registro, contrasena "
-        "FROM usuarios WHERE correo = %s",
-        (correo,)
-    )
-    usuario = cursor.fetchone()
-    cursor.close()
-    conn.close()
-
-    if usuario is None or usuario['contrasena'] != contrasena:
-        return jsonify({"error": "Correo o contraseña incorrectos"}), 401
-
-    # No devolvemos la contraseña en la respuesta
-    usuario.pop('contrasena')
-    return jsonify(usuario), 200
-
-
-@app.route('/usuarios', methods=['GET'])
-def get_usuarios():
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id_usuario, nombre, edad, peso, correo, objetivo_pasos, fecha_registro FROM usuarios")
-    datos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(datos)
-
-
-@app.route('/usuarios/<int:id_usuario>', methods=['GET'])
-def get_usuario(id_usuario):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT id_usuario, nombre, edad, peso, correo, objetivo_pasos, fecha_registro "
-        "FROM usuarios WHERE id_usuario = %s",
-        (id_usuario,)
-    )
-    dato = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    if dato is None:
-        return jsonify({"error": "Usuario no encontrado"}), 404
-    return jsonify(dato)
-
-
-@app.route('/usuarios', methods=['POST'])
-def add_usuario():
-    body = request.get_json()
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO usuarios (nombre, edad, peso, correo, contrasena, objetivo_pasos) "
-        "VALUES (%s, %s, %s, %s, %s, %s)",
-        (
-            body['nombre'],
-            body['edad'],
-            body['peso'],
-            body['correo'],
-            body['contrasena'],
-            body.get('objetivo_pasos', 10000)
+    try:
+        cursor.execute(
+            f"SELECT {USER_COLUMNS}, password_hash FROM users WHERE email = %s",
+            (email,),
         )
-    )
-    conn.commit()
-    nuevo_id = cursor.lastrowid
-    cursor.close()
-    conn.close()
-    return jsonify({"id": nuevo_id}), 201
+        user = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
+    # NUEVO: las cuentas creadas solo con Google no tienen password_hash
+    # (columna ahora NULLable); sin este check, check_password_hash(None, ...)
+    # lanzaría un TypeError en vez de devolver el 401 esperado.
+    if user is None or user['password_hash'] is None or not check_password_hash(user['password_hash'], password):
+        return jsonify({"error": "Incorrect email or password"}), 401
+
+    user.pop('password_hash')
+    return jsonify(with_age(user)), 200
 
 
-@app.route('/usuarios/<int:id_usuario>/actividad', methods=['GET'])
-def get_actividad(id_usuario):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT * FROM actividad_diaria WHERE id_usuario = %s ORDER BY fecha DESC",
-        (id_usuario,)
-    )
-    datos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(datos)
+# ---------------------------------------------------------------------
+#  Auth · Google Sign-In
+#  Un único endpoint para login y registro: Google no distingue entre
+#  ambos, así que la primera vez que se usa una cuenta se crea la fila
+#  y las siguientes veces simplemente se recupera.
+# ---------------------------------------------------------------------
+@app.route('/auth/google', methods=['POST'])
+def login_with_google():
+    body = request.get_json(silent=True) or {}
+    token = body.get('id_token')
+    if not token:
+        return jsonify({"error": "id_token is required"}), 400
 
-
-@app.route('/usuarios/<int:id_usuario>/actividad', methods=['POST'])
-def add_actividad(id_usuario):
-    body = request.get_json()
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO actividad_diaria (id_usuario, fecha, pasos_diarios, calorias_quemadas, horas_sueno) "
-        "VALUES (%s, %s, %s, %s, %s)",
-        (
-            id_usuario,
-            body['fecha'],
-            body.get('pasos_diarios', 0),
-            body.get('calorias_quemadas', 0),
-            body.get('horas_sueno', 0)
+    try:
+        payload = google_id_token.verify_oauth2_token(
+            token, google_requests.Request(), GOOGLE_WEB_CLIENT_ID
         )
-    )
-    conn.commit()
-    nuevo_id = cursor.lastrowid
-    cursor.close()
-    conn.close()
-    return jsonify({"id": nuevo_id}), 201
+    except ValueError:
+        return jsonify({"error": "Invalid Google token"}), 401
 
+    if not payload.get('email_verified', False):
+        return jsonify({"error": "Google email is not verified"}), 401
 
-@app.route('/tipos_entrenamiento', methods=['GET'])
-def get_tipos_entrenamiento():
+    google_id = payload['sub']
+    email = payload['email']
+    name = payload.get('name') or email.split('@')[0]
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM tipos_entrenamiento")
-    datos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(datos)
+    try:
+        cursor.execute(f"SELECT {USER_COLUMNS} FROM users WHERE google_id = %s", (google_id,))
+        user = cursor.fetchone()
+
+        if user is None:
+            # Sin cuenta vinculada a este google_id todavía: miramos por email
+            # para enlazar una cuenta de contraseña ya existente en vez de
+            # duplicarla.
+            cursor.execute(f"SELECT {USER_COLUMNS} FROM users WHERE email = %s", (email,))
+            user = cursor.fetchone()
+
+            if user is None:
+                cursor.execute(
+                    "INSERT INTO users (name, email, google_id, daily_step_goal) "
+                    "VALUES (%s, %s, %s, %s)",
+                    (name, email, google_id, 10000),
+                )
+                conn.commit()
+                cursor.execute(f"SELECT {USER_COLUMNS} FROM users WHERE user_id = %s", (cursor.lastrowid,))
+                user = cursor.fetchone()
+            else:
+                cursor.execute("UPDATE users SET google_id = %s WHERE user_id = %s", (google_id, user['user_id']))
+                conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify(with_age(user)), 200
 
 
-@app.route('/usuarios/<int:id_usuario>/entrenamientos', methods=['GET'])
-def get_entrenamientos(id_usuario):
+# ---------------------------------------------------------------------
+#  Users
+# ---------------------------------------------------------------------
+@app.route('/users', methods=['GET'])
+def get_users():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT e.id_entrenamiento, e.fecha_inicio, e.duracion_segundos, "
-        "e.frecuencia_cardiaca, e.pasos, e.calorias_quemadas, t.nombre AS tipo "
-        "FROM entrenamientos e "
-        "JOIN tipos_entrenamiento t ON e.id_tipo = t.id_tipo "
-        "WHERE e.id_usuario = %s "
-        "ORDER BY e.fecha_inicio DESC",
-        (id_usuario,)
-    )
-    datos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(datos)
+    try:
+        cursor.execute(f"SELECT {USER_COLUMNS} FROM users")
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify([with_age(u) for u in rows])
 
 
-@app.route('/usuarios/<int:id_usuario>/entrenamientos', methods=['POST'])
-def add_entrenamiento(id_usuario):
-    body = request.get_json()
+@app.route('/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(f"SELECT {USER_COLUMNS} FROM users WHERE user_id = %s", (user_id,))
+        row = cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+    if row is None:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify(with_age(row))
+
+
+@app.route('/users', methods=['POST'])
+def add_user():
+    body = request.get_json(silent=True) or {}
+    required = ('name', 'email', 'password')
+    missing = [f for f in required if not body.get(f)]
+    if missing:
+        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO entrenamientos "
-        "(id_usuario, id_tipo, fecha_inicio, duracion_segundos, frecuencia_cardiaca, pasos, calorias_quemadas) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-        (
-            id_usuario,
-            body['id_tipo'],
-            body['fecha_inicio'],
-            body.get('duracion_segundos', 0),
-            body['frecuencia_cardiaca'],
-            body.get('pasos', 0),
-            body.get('calorias_quemadas', 0)
+    try:
+        cursor.execute(
+            "INSERT INTO users "
+            "(name, date_of_birth, sex, height_cm, weight_kg, email, password_hash, daily_step_goal) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                body['name'],
+                body.get('date_of_birth'),
+                body.get('sex'),
+                body.get('height_cm'),
+                body.get('weight_kg'),
+                body['email'],
+                generate_password_hash(body['password']),
+                body.get('daily_step_goal', 10000),
+            ),
         )
-    )
-    conn.commit()
-    nuevo_id = cursor.lastrowid
-    cursor.close()
-    conn.close()
-    return jsonify({"id": nuevo_id}), 201
+        conn.commit()
+        new_id = cursor.lastrowid
+    except mysql.connector.IntegrityError:
+        return jsonify({"error": "Email already registered"}), 409
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify({"id": new_id}), 201
 
 
-@app.route('/usuarios/<int:id_usuario>/historial_peso', methods=['GET'])
-def get_historial_peso(id_usuario):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        "SELECT * FROM historial_peso WHERE id_usuario = %s ORDER BY fecha ASC",
-        (id_usuario,)
-    )
-    datos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(datos)
+@app.route('/users/<int:user_id>', methods=['PATCH'])
+def update_user(user_id):
+    """Partial profile update for the personal-data screen. Only the
+    fields present in the body are changed; everything else is left as-is."""
+    body = request.get_json(silent=True) or {}
+    editable = ('name', 'date_of_birth', 'sex', 'height_cm', 'weight_kg', 'daily_step_goal')
+    updates = {f: body[f] for f in editable if f in body}
 
+    if not updates:
+        return jsonify({"error": "No updatable fields provided"}), 400
 
-@app.route('/usuarios/<int:id_usuario>/historial_peso', methods=['POST'])
-def add_historial_peso(id_usuario):
-    body = request.get_json()
+    set_clause = ", ".join(f"{col} = %s" for col in updates)
+    values = list(updates.values()) + [user_id]
+
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO historial_peso (id_usuario, peso, fecha) VALUES (%s, %s, %s)",
-        (id_usuario, body['peso'], body['fecha'])
-    )
-    conn.commit()
-    nuevo_id = cursor.lastrowid
-    cursor.close()
-    conn.close()
-    return jsonify({"id": nuevo_id}), 201
+    try:
+        cursor.execute(f"UPDATE users SET {set_clause} WHERE user_id = %s", values)
+        conn.commit()
+        affected = cursor.rowcount
+    finally:
+        cursor.close()
+        conn.close()
+    if affected == 0:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({"updated": list(updates.keys())}), 200
 
 
-@app.route('/basedatos', methods=['GET'])
-def get_basedatos_completa():
+# ---------------------------------------------------------------------
+#  Daily activity
+# ---------------------------------------------------------------------
+@app.route('/users/<int:user_id>/activity', methods=['GET'])
+def get_activity(user_id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT activity_id, user_id, "
+            "DATE_FORMAT(activity_date, '%Y-%m-%d') AS activity_date, "
+            "steps, calories_burned, sleep_hours "
+            "FROM daily_activity WHERE user_id = %s ORDER BY activity_date DESC",
+            (user_id,),
+        )
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify(rows)
 
-    cursor.execute("SELECT id_usuario, nombre, edad, peso, correo, objetivo_pasos, fecha_registro FROM usuarios")
-    usuarios = cursor.fetchall()
 
-    cursor.execute("SELECT * FROM historial_peso")
-    historial_peso = cursor.fetchall()
+@app.route('/users/<int:user_id>/activity', methods=['POST'])
+def add_activity(user_id):
+    body = request.get_json(silent=True) or {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO daily_activity (user_id, activity_date, steps, calories_burned, sleep_hours) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (
+                user_id,
+                body['activity_date'],
+                body.get('steps', 0),
+                body.get('calories_burned', 0),
+                body.get('sleep_hours', 0),
+            ),
+        )
+        conn.commit()
+        new_id = cursor.lastrowid
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify({"id": new_id}), 201
 
-    cursor.execute("SELECT * FROM actividad_diaria")
-    actividad_diaria = cursor.fetchall()
 
-    cursor.execute("SELECT * FROM tipos_entrenamiento")
-    tipos_entrenamiento = cursor.fetchall()
+# ---------------------------------------------------------------------
+#  Weight history
+# ---------------------------------------------------------------------
+@app.route('/users/<int:user_id>/weight-history', methods=['GET'])
+def get_weight_history(user_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT weight_log_id, user_id, weight_kg, "
+            "DATE_FORMAT(recorded_on, '%Y-%m-%d') AS recorded_on "
+            "FROM weight_history WHERE user_id = %s ORDER BY recorded_on ASC",
+            (user_id,),
+        )
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify(rows)
 
-    cursor.execute(
-        "SELECT e.*, t.nombre AS tipo "
-        "FROM entrenamientos e "
-        "JOIN tipos_entrenamiento t ON e.id_tipo = t.id_tipo"
-    )
-    entrenamientos = cursor.fetchall()
 
-    cursor.close()
-    conn.close()
+@app.route('/users/<int:user_id>/weight-history', methods=['POST'])
+def add_weight(user_id):
+    body = request.get_json(silent=True) or {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO weight_history (user_id, weight_kg, recorded_on) VALUES (%s, %s, %s)",
+            (user_id, body['weight_kg'], body['recorded_on']),
+        )
+        conn.commit()
+        new_id = cursor.lastrowid
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify({"id": new_id}), 201
+
+
+# ---------------------------------------------------------------------
+#  Workout types
+# ---------------------------------------------------------------------
+@app.route('/workout-types', methods=['GET'])
+def get_workout_types():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT workout_type_id, code, name FROM workout_types ORDER BY workout_type_id")
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify(rows)
+
+
+# ---------------------------------------------------------------------
+#  Workouts
+# ---------------------------------------------------------------------
+@app.route('/users/<int:user_id>/workouts', methods=['GET'])
+def get_workouts(user_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT w.workout_id, "
+            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%s') AS started_at, "
+            "w.duration_seconds, w.avg_heart_rate, w.steps, w.calories_burned, "
+            "w.notes, w.is_personal_record, w.pr_exercise, w.pr_result, "
+            "t.code AS type_code, t.name AS type_name "
+            "FROM workouts w "
+            "JOIN workout_types t ON w.workout_type_id = t.workout_type_id "
+            "WHERE w.user_id = %s ORDER BY w.started_at DESC",
+            (user_id,),
+        )
+        rows = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify(rows)
+
+
+@app.route('/users/<int:user_id>/workouts/<int:workout_id>', methods=['GET'])
+def get_workout_detail(user_id, workout_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT w.workout_id, "
+            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%s') AS started_at, "
+            "w.duration_seconds, w.avg_heart_rate, w.steps, w.calories_burned, "
+            "w.notes, w.is_personal_record, w.pr_exercise, w.pr_result, "
+            "t.code AS type_code, t.name AS type_name "
+            "FROM workouts w "
+            "JOIN workout_types t ON w.workout_type_id = t.workout_type_id "
+            "WHERE w.user_id = %s AND w.workout_id = %s",
+            (user_id, workout_id),
+        )
+        workout = cursor.fetchone()
+        if workout is None:
+            return jsonify({"error": "Workout not found"}), 404
+
+        cursor.execute(
+            "SELECT exercise_id, position, name, sets, reps, weight_kg "
+            "FROM workout_exercises WHERE workout_id = %s ORDER BY position",
+            (workout_id,),
+        )
+        workout["exercises"] = cursor.fetchall()
+
+        cursor.execute(
+            "SELECT segment_id, position, duration_seconds, distance_m, note "
+            "FROM workout_segments WHERE workout_id = %s ORDER BY position",
+            (workout_id,),
+        )
+        workout["segments"] = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify(workout)
+
+
+@app.route('/users/<int:user_id>/workouts', methods=['POST'])
+def add_workout(user_id):
+    """Create a workout and, in the same transaction, its optional
+    strength `exercises` and running `segments`. The type is resolved
+    from `type_code` (preferred) or `workout_type_id`."""
+    body = request.get_json(silent=True) or {}
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Resolve the workout type by stable code (falls back to id).
+        type_id = body.get('workout_type_id')
+        if body.get('type_code'):
+            cursor.execute(
+                "SELECT workout_type_id FROM workout_types WHERE code = %s",
+                (body['type_code'],),
+            )
+            found = cursor.fetchone()
+            if found is None:
+                return jsonify({"error": f"Unknown workout type '{body['type_code']}'"}), 400
+            type_id = found['workout_type_id']
+        if type_id is None:
+            return jsonify({"error": "workout_type_id or type_code is required"}), 400
+
+        cursor.execute(
+            "INSERT INTO workouts "
+            "(user_id, workout_type_id, started_at, duration_seconds, avg_heart_rate, "
+            " steps, calories_burned, notes, is_personal_record, pr_exercise, pr_result) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                user_id,
+                type_id,
+                body['started_at'],
+                body.get('duration_seconds', 0),
+                body.get('avg_heart_rate'),
+                body.get('steps', 0),
+                body.get('calories_burned', 0),
+                body.get('notes'),
+                body.get('is_personal_record', False),
+                body.get('pr_exercise'),
+                body.get('pr_result'),
+            ),
+        )
+        workout_id = cursor.lastrowid
+
+        for i, ex in enumerate(body.get('exercises', []), start=1):
+            cursor.execute(
+                "INSERT INTO workout_exercises (workout_id, position, name, sets, reps, weight_kg) "
+                "VALUES (%s, %s, %s, %s, %s, %s)",
+                (
+                    workout_id,
+                    ex.get('position', i),
+                    ex.get('name', ''),
+                    ex.get('sets', 0),
+                    ex.get('reps', 0),
+                    ex.get('weight_kg', 0),
+                ),
+            )
+
+        for i, seg in enumerate(body.get('segments', []), start=1):
+            cursor.execute(
+                "INSERT INTO workout_segments (workout_id, position, duration_seconds, distance_m, note) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (
+                    workout_id,
+                    seg.get('position', i),
+                    seg.get('duration_seconds', 0),
+                    seg.get('distance_m'),
+                    seg.get('note'),
+                ),
+            )
+
+        conn.commit()
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({"error": f"Database error: {err.msg}"}), 400
+    finally:
+        cursor.close()
+        conn.close()
+    return jsonify({"id": workout_id}), 201
+
+
+# ---------------------------------------------------------------------
+#  Full dump (debug / admin)
+# ---------------------------------------------------------------------
+@app.route('/database', methods=['GET'])
+def get_full_database():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(f"SELECT {USER_COLUMNS} FROM users")
+        users = [with_age(u) for u in cursor.fetchall()]
+
+        cursor.execute(
+            "SELECT weight_log_id, user_id, weight_kg, "
+            "DATE_FORMAT(recorded_on, '%Y-%m-%d') AS recorded_on FROM weight_history"
+        )
+        weight_history = cursor.fetchall()
+
+        cursor.execute(
+            "SELECT activity_id, user_id, "
+            "DATE_FORMAT(activity_date, '%Y-%m-%d') AS activity_date, "
+            "steps, calories_burned, sleep_hours FROM daily_activity"
+        )
+        daily_activity = cursor.fetchall()
+
+        cursor.execute("SELECT workout_type_id, code, name FROM workout_types")
+        workout_types = cursor.fetchall()
+
+        cursor.execute(
+            "SELECT w.workout_id, w.user_id, w.workout_type_id, "
+            "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%s') AS started_at, "
+            "w.duration_seconds, w.avg_heart_rate, w.steps, w.calories_burned, "
+            "w.notes, w.is_personal_record, w.pr_exercise, w.pr_result, "
+            "t.code AS type_code, t.name AS type_name "
+            "FROM workouts w JOIN workout_types t ON w.workout_type_id = t.workout_type_id"
+        )
+        workouts = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM workout_exercises ORDER BY workout_id, position")
+        workout_exercises = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM workout_segments ORDER BY workout_id, position")
+        workout_segments = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
     return jsonify({
-        "usuarios": usuarios,
-        "historial_peso": historial_peso,
-        "actividad_diaria": actividad_diaria,
-        "tipos_entrenamiento": tipos_entrenamiento,
-        "entrenamientos": entrenamientos
+        "users": users,
+        "weight_history": weight_history,
+        "daily_activity": daily_activity,
+        "workout_types": workout_types,
+        "workouts": workouts,
+        "workout_exercises": workout_exercises,
+        "workout_segments": workout_segments,
     })
 
 

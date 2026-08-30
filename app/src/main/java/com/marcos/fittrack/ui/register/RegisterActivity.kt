@@ -16,8 +16,12 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.lifecycle.lifecycleScope
 import com.marcos.fittrack.R
+import com.marcos.fittrack.data.auth.GoogleAuthHelper
 import com.marcos.fittrack.ui.home.HomeActivity
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Locale
 
@@ -59,8 +63,19 @@ class RegisterActivity : AppCompatActivity() {
             )
         }
 
+        // NUEVO: mismo flujo de Credential Manager que en LoginActivity; la
+        // API decide si la cuenta ya existe (login) o hay que crearla (alta).
         btnGoogle.setOnClickListener {
-            // TODO: registro con Google
+            lifecycleScope.launch {
+                try {
+                    val idToken = GoogleAuthHelper.obtenerIdToken(this@RegisterActivity)
+                    viewModel.registrarConGoogle(idToken)
+                } catch (e: GoogleAuthHelper.CancelledException) {
+                    // El usuario cerró el selector de cuentas: no hacemos nada.
+                } catch (e: GetCredentialException) {
+                    etContrasena.error = "No se pudo registrar con Google"
+                }
+            }
         }
 
         btnApple.setOnClickListener {

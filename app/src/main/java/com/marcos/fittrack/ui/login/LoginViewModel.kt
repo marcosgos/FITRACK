@@ -3,19 +3,19 @@ package com.marcos.fittrack.ui.login
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.marcos.fittrack.data.model.Usuario
-import com.marcos.fittrack.data.repository.UsuarioRepository
+import com.marcos.fittrack.data.model.User
+import com.marcos.fittrack.data.repository.UserRepository
 
 sealed class EstadoLogin {
     object Inicial : EstadoLogin()
     object Cargando : EstadoLogin()
-    data class Exito(val usuario: Usuario) : EstadoLogin()
+    data class Exito(val usuario: User) : EstadoLogin()
     data class Error(val mensaje: String) : EstadoLogin()
 }
 
 class LoginViewModel : ViewModel() {
 
-    private val repository = UsuarioRepository()
+    private val repository = UserRepository()
 
     private val _estadoLogin = MutableLiveData<EstadoLogin>(EstadoLogin.Inicial)
     val estadoLogin: LiveData<EstadoLogin> = _estadoLogin
@@ -29,10 +29,22 @@ class LoginViewModel : ViewModel() {
         _estadoLogin.value = EstadoLogin.Cargando
 
         repository.login(
-            correo = correo,
-            contrasena = contrasena,
-            alExito = { usuario -> _estadoLogin.value = EstadoLogin.Exito(usuario) },
-            alError = { mensaje -> _estadoLogin.value = EstadoLogin.Error(mensaje) }
+            email = correo,
+            password = contrasena,
+            onSuccess = { usuario -> _estadoLogin.value = EstadoLogin.Exito(usuario) },
+            onError = { mensaje -> _estadoLogin.value = EstadoLogin.Error(mensaje) }
+        )
+    }
+
+    // NUEVO (login con Google): la Activity ya obtuvo el idToken vía
+    // GoogleAuthHelper antes de llamar aquí.
+    fun iniciarSesionConGoogle(idToken: String) {
+        _estadoLogin.value = EstadoLogin.Cargando
+
+        repository.loginWithGoogle(
+            idToken = idToken,
+            onSuccess = { usuario -> _estadoLogin.value = EstadoLogin.Exito(usuario) },
+            onError = { mensaje -> _estadoLogin.value = EstadoLogin.Error(mensaje) }
         )
     }
 }

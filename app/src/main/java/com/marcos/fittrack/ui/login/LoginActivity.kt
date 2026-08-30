@@ -15,9 +15,13 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.lifecycle.lifecycleScope
 import com.marcos.fittrack.R
+import com.marcos.fittrack.data.auth.GoogleAuthHelper
 import com.marcos.fittrack.ui.home.HomeActivity
 import com.marcos.fittrack.ui.register.RegisterActivity
+import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
 
@@ -51,8 +55,19 @@ class LoginActivity : AppCompatActivity() {
             viewModel.iniciarSesion(correo, contrasena)
         }
 
+        // NUEVO: pide el ID token vía Credential Manager y se lo pasa al
+        // ViewModel, que lo manda a /auth/google (mismo estado que el login normal).
         btnGoogle.setOnClickListener {
-            // TODO: login con Google
+            lifecycleScope.launch {
+                try {
+                    val idToken = GoogleAuthHelper.obtenerIdToken(this@LoginActivity)
+                    viewModel.iniciarSesionConGoogle(idToken)
+                } catch (e: GoogleAuthHelper.CancelledException) {
+                    // El usuario cerró el selector de cuentas: no hacemos nada.
+                } catch (e: GetCredentialException) {
+                    etContrasena.error = "No se pudo iniciar sesión con Google"
+                }
+            }
         }
 
         btnApple.setOnClickListener {
@@ -76,8 +91,8 @@ class LoginActivity : AppCompatActivity() {
                 is EstadoLogin.Exito -> {
                     btnIniciarSesion.isEnabled = true
                     val intent = Intent(this, HomeActivity::class.java)
-                    intent.putExtra("nombreUsuario", estado.usuario.nombre)
-                    intent.putExtra("idUsuario", estado.usuario.id_usuario)
+                    intent.putExtra("nombreUsuario", estado.usuario.name)
+                    intent.putExtra("idUsuario", estado.usuario.userId)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
                     finish()

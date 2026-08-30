@@ -3,8 +3,8 @@ package com.marcos.fittrack.ui.register
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.marcos.fittrack.data.model.RegistroRequest
-import com.marcos.fittrack.data.repository.UsuarioRepository
+import com.marcos.fittrack.data.model.RegisterRequest
+import com.marcos.fittrack.data.repository.UserRepository
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -18,7 +18,7 @@ sealed class EstadoRegistro {
 
 class RegisterViewModel : ViewModel() {
 
-    private val repository = UsuarioRepository()
+    private val repository = UserRepository()
 
     private val _estadoRegistro = MutableLiveData<EstadoRegistro>(EstadoRegistro.Inicial)
     val estadoRegistro: LiveData<EstadoRegistro> = _estadoRegistro
@@ -29,43 +29,58 @@ class RegisterViewModel : ViewModel() {
             return
         }
 
-        val edad = calcularEdad(fechaNacimiento)
-        if (edad == null) {
+        val fechaIso = aFechaIso(fechaNacimiento)
+        if (fechaIso == null) {
             _estadoRegistro.value = EstadoRegistro.Error("Fecha no válida (usa dd/mm/aaaa)")
             return
         }
 
         _estadoRegistro.value = EstadoRegistro.Cargando
 
-        val datos = RegistroRequest(
-            nombre = nombre,
-            edad = edad,
-            peso = 0.0, // se pedirá más adelante, ej. en un perfil
-            correo = correo,
-            contrasena = contrasena
+        // La edad la deriva el servidor a partir de date_of_birth.
+        // El peso y demás datos se piden luego en la pantalla de perfil.
+        val datos = RegisterRequest(
+            name = nombre,
+            email = correo,
+            password = contrasena,
+            dateOfBirth = fechaIso
         )
 
-        repository.registrar(
-            datos = datos,
-            alExito = { id -> _estadoRegistro.value = EstadoRegistro.Exito(id, nombre) },
-            alError = { mensaje -> _estadoRegistro.value = EstadoRegistro.Error(mensaje) }
+        repository.register(
+            data = datos,
+            onSuccess = { id -> _estadoRegistro.value = EstadoRegistro.Exito(id, nombre) },
+            onError = { mensaje -> _estadoRegistro.value = EstadoRegistro.Error(mensaje) }
         )
     }
 
-    private fun calcularEdad(fechaTexto: String): Int? {
+    // NUEVO (login con Google): mismo endpoint que el login con Google;
+    // si la cuenta no existe, la API la crea aquí mismo.
+    fun registrarConGoogle(idToken: String) {
+        _estadoRegistro.value = EstadoRegistro.Cargando
+
+        repository.loginWithGoogle(
+            idToken = idToken,
+            onSuccess = { usuario -> _estadoRegistro.value = EstadoRegistro.Exito(usuario.userId, usuario.name) },
+            onError = { mensaje -> _estadoRegistro.value = EstadoRegistro.Error(mensaje) }
+        )
+    }
+
+    /** Convierte "dd/MM/yyyy" a "yyyy-MM-dd" validando que sea una fecha real
+     *  y con una edad plausible. Devuelve null si no es válida. */
+    private fun aFechaIso(fechaTexto: String): String? {
         return try {
-            val formato = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            formato.isLenient = false
-            val fechaNacimiento = formato.parse(fechaTexto) ?: return null
+            val entrada = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            entrada.isLenient = false
+            val fecha = entrada.parse(fechaTexto) ?: return null
 
-            val nacimiento = Calendar.getInstance().apply { time = fechaNacimiento }
+            val nacimiento = Calendar.getInstance().apply { time = fecha }
             val hoy = Calendar.getInstance()
-
             var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
-            if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) {
-                edad--
-            }
-            if (edad < 0 || edad > 120) null else edad
+            if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
+            if (edad < 0 || edad > 120) return null
+
+            val salida = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            salida.format(fecha)
         } catch (e: Exception) {
             null
         }
