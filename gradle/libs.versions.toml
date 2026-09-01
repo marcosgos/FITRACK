@@ -1,3 +1,5 @@
+# Este archivo sirve para especificar las versiones de las dependencias y plugins
+# utilizados en el proyecto Android que luego seran implementadas en otros archivos.
 [versions]
 agp = "9.2.1"
 coreKtx = "1.19.0"

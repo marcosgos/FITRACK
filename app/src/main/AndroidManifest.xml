@@ -31,6 +31,12 @@
         <activity
             android:name=".ui.entrenamiento.NuevoEntrenamientoActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.ejercicios.EjerciciosActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.ejercicios.DetalleEjercicioActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

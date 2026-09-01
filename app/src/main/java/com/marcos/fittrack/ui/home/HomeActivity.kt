@@ -18,6 +18,7 @@ import com.marcos.fittrack.data.model.Workout
 import com.marcos.fittrack.ui.entrenamiento.NuevoEntrenamientoActivity
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.marcos.fittrack.ui.ejercicios.EjerciciosActivity
 
 class HomeActivity : AppCompatActivity() {
 
@@ -89,7 +90,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.cardExplorarEjercicios).setOnClickListener {
-            // TODO: abrir explorar ejercicios
+            startActivity(Intent(this, EjerciciosActivity::class.java))
         }
     }
 
