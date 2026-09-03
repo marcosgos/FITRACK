@@ -29,13 +29,19 @@ class DetalleEjercicioActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvNombre).text = ejercicio.name
 
         Glide.with(this)
-            .load(ejercicio.urlGif() ?: ejercicio.urlImagen())
+            .load(ejercicio.urlImagen())
             .centerCrop()
             .into(findViewById<ImageView>(R.id.ivImagenGrande))
+
+        Glide.with(this)
+            .load(ejercicio.urlGif())
+            .fitCenter()
+            .into(findViewById<ImageView>(R.id.ivGifDemostracion))
 
         montarBadges(ejercicio)
         montarMusculos(ejercicio)
         montarInstrucciones(ejercicio)
+
     }
 
     @Suppress("DEPRECATION")
@@ -71,11 +77,16 @@ class DetalleEjercicioActivity : AppCompatActivity() {
     }
 
     private fun montarMusculos(ejercicio: Ejercicio) {
-        val principal = Diccionario.traducir(ejercicio.muscle_group).ifBlank { "No especificado" }
+        val principal = Diccionario.traducir(ejercicio.target).ifBlank { "No especificado" }
+        val grupo = Diccionario.traducir(ejercicio.muscle_group)
         val secundarios = ejercicio.secondary_muscles.map { Diccionario.traducir(it) }
 
         val texto = buildString {
             append(principal)
+            if (grupo.isNotBlank() && grupo != principal) {
+                append("  ·  Grupo: ")
+                append(grupo)
+            }
             if (secundarios.isNotEmpty()) {
                 append("\n\nSecundarios: ")
                 append(secundarios.joinToString(", "))
@@ -88,13 +99,27 @@ class DetalleEjercicioActivity : AppCompatActivity() {
         val contenedor = findViewById<LinearLayout>(R.id.contenedorInstrucciones)
         contenedor.removeAllViews()
 
-        val texto = ejercicio.descripcion()
-        val tv = TextView(this).apply {
-            text = texto.ifBlank { "Sin instrucciones disponibles para este ejercicio." }
-            setTextColor(Color.parseColor("#EDEDED"))
-            textSize = 13f
-            setLineSpacing(6f, 1f)
+        val pasos = ejercicio.pasos()
+
+        if (pasos.isEmpty()) {
+            val vacio = TextView(this).apply {
+                text = "Sin instrucciones disponibles para este ejercicio."
+                setTextColor(Color.parseColor("#8A8A8A"))
+                textSize = 13f
+            }
+            contenedor.addView(vacio)
+            return
         }
-        contenedor.addView(tv)
+
+        pasos.forEachIndexed { index, paso ->
+            val tv = TextView(this).apply {
+                text = "${index + 1}. $paso"
+                setTextColor(Color.parseColor("#EDEDED"))
+                textSize = 13f
+                setLineSpacing(4f, 1f)
+                setPadding(0, 0, 0, 16)
+            }
+            contenedor.addView(tv)
+        }
     }
 }

@@ -8,11 +8,11 @@ data class Ejercicio(
     val category: String?,
     val body_part: String?,
     val equipment: String?,
+    val instructions: Map<String, String>? = null,
+    val instruction_steps: Map<String, List<String>>? = null,
     val muscle_group: String?,
     val secondary_muscles: List<String> = emptyList(),
     val target: String?,
-    val instructions_es: String?,
-    val instructions_en: String?,
     val image: String?,
     val gif_url: String?,
     val media_id: String?,
@@ -26,7 +26,10 @@ data class Ejercicio(
     fun urlImagen(): String? = image?.let { BASE_MEDIA_URL + it }
     fun urlGif(): String? = gif_url?.let { BASE_MEDIA_URL + it }
 
-    /** Instrucciones en español si existen; si no, cae al inglés como respaldo. */
-    fun descripcion(): String =
-        instructions_es?.takeIf { it.isNotBlank() } ?: instructions_en ?: ""
+    /** Pasos en español si existen; si no, cae al inglés como respaldo. */
+    fun pasos(): List<String> {
+        return instruction_steps?.get("es")?.takeIf { it.isNotEmpty() }
+            ?: instruction_steps?.get("en")
+            ?: emptyList()
+    }
 }
