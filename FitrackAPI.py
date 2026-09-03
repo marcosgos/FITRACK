@@ -384,7 +384,9 @@ def get_workouts(user_id):
             "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%S') AS started_at, "
             "w.duration_seconds, w.avg_heart_rate, w.steps, w.calories_burned, "
             "w.notes, w.is_personal_record, w.pr_exercise, w.pr_result, "
-            "t.code AS type_code, t.name AS type_name "
+            "t.code AS type_code, t.name AS type_name, w.distance_m, w.avg_speed_kmh, "
+            "w.max_speed_kmh, w.elevation_gain_m, w.swim_style, w.pool_lengths, "
+            "w.pool_length_m, w.swolf, w.max_heart_rate "
             "FROM workouts w "
             "JOIN workout_types t ON w.workout_type_id = t.workout_type_id "
             "WHERE w.user_id = %s ORDER BY w.started_at DESC",
@@ -407,7 +409,9 @@ def get_workout_detail(user_id, workout_id):
             "DATE_FORMAT(w.started_at, '%Y-%m-%d %H:%i:%S') AS started_at, "
             "w.duration_seconds, w.avg_heart_rate, w.steps, w.calories_burned, "
             "w.notes, w.is_personal_record, w.pr_exercise, w.pr_result, "
-            "t.code AS type_code, t.name AS type_name "
+            "t.code AS type_code, t.name AS type_name, w.distance_m, " 
+            "w.avg_speed_kmh, w.max_speed_kmh, w.elevation_gain_m, "
+            "w.swim_style, w.pool_lengths, w.pool_length_m, w.swolf, w.max_heart_rate "
             "FROM workouts w "
             "JOIN workout_types t ON w.workout_type_id = t.workout_type_id "
             "WHERE w.user_id = %s AND w.workout_id = %s",
@@ -462,17 +466,27 @@ def add_workout(user_id):
 
         cursor.execute(
             "INSERT INTO workouts "
-            "(user_id, workout_type_id, started_at, duration_seconds, avg_heart_rate, "
-            " steps, calories_burned, notes, is_personal_record, pr_exercise, pr_result) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "(user_id, workout_type_id, started_at, duration_seconds, avg_heart_rate, max_heart_rate, "
+            " steps, calories_burned, distance_m, avg_speed_kmh, max_speed_kmh, elevation_gain_m, "
+            " swim_style, pool_lengths, pool_length_m, swolf, notes, is_personal_record, pr_exercise, pr_result) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (
                 user_id,
                 type_id,
                 body['started_at'],
                 body.get('duration_seconds', 0),
                 body.get('avg_heart_rate'),
+                body.get('max_heart_rate'),
                 body.get('steps', 0),
                 body.get('calories_burned', 0),
+                body.get('distance_m'),
+                body.get('avg_speed_kmh'),
+                body.get('max_speed_kmh'),
+                body.get('elevation_gain_m'),
+                body.get('swim_style'),
+                body.get('pool_lengths'),
+                body.get('pool_length_m'),
+                body.get('swolf'),
                 body.get('notes'),
                 body.get('is_personal_record', False),
                 body.get('pr_exercise'),
