@@ -107,10 +107,19 @@ CREATE TABLE workouts (
     started_at         DATETIME NOT NULL,
     duration_seconds   INT UNSIGNED NOT NULL DEFAULT 0,
     avg_heart_rate     SMALLINT UNSIGNED NULL COMMENT 'Average bpm, null if not measured',
+    max_heart_rate     SMALLINT UNSIGNED NULL COMMENT 'Peak bpm, null if not measured',
     steps              INT UNSIGNED NOT NULL DEFAULT 0,
     calories_burned    INT UNSIGNED NOT NULL DEFAULT 0,
-    notes              TEXT     NULL COMMENT 'WOD description / free-text notes',
-    is_personal_record BOOLEAN  NOT NULL DEFAULT FALSE,
+    distance_m         INT UNSIGNED NULL COMMENT 'Total distance in metres',
+    avg_speed_kmh      DECIMAL(5,2) NULL,
+    max_speed_kmh      DECIMAL(5,2) NULL,
+    elevation_gain_m   INT UNSIGNED NULL COMMENT 'Positive elevation gain in metres',
+    swim_style         VARCHAR(20) NULL COMMENT 'freestyle, backstroke, breaststroke, butterfly',
+    pool_lengths       SMALLINT UNSIGNED NULL,
+    pool_length_m      DECIMAL(5,2) NULL,
+    swolf              SMALLINT UNSIGNED NULL,
+    notes              TEXT NULL COMMENT 'WOD description / free-text notes',
+    is_personal_record BOOLEAN NOT NULL DEFAULT FALSE,
     pr_exercise        VARCHAR(100) NULL COMMENT 'PR lift name, e.g. Clean & Jerk',
     pr_result          VARCHAR(100) NULL COMMENT 'PR mark, e.g. 90 kg / 1 rep',
     created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -118,7 +127,6 @@ CREATE TABLE workouts (
     FOREIGN KEY (workout_type_id) REFERENCES workout_types(workout_type_id),
     INDEX idx_workouts_user_date (user_id, started_at)
 );
-
 
 -- ---------------------------------------------------------------------
 --  workout_exercises  (strength detail: one row per exercise)
