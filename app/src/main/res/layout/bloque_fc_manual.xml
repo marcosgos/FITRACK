@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_marginTop="4dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Frecuencia cardíaca (opcional)"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="6dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tu móvil no tiene sensor de pulso — introdúcela manualmente si la conoces"
+        android:textColor="@color/fittrack_text_gray"
+        android:textSize="11sp"
+        android:layout_marginBottom="10dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/etFcMedia"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_input_outline"
+            android:hint="FC media"
+            android:textColorHint="@color/fittrack_hint_gray"
+            android:textColor="#FFFFFF"
+            android:inputType="number"
+            android:paddingHorizontal="12dp" />
+
+        <EditText
+            android:id="@+id/etFcMaxima"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_input_outline"
+            android:hint="FC máxima"
+            android:textColorHint="@color/fittrack_hint_gray"
+            android:textColor="#FFFFFF"
+            android:inputType="number"
+            android:paddingHorizontal="12dp" />
+    </LinearLayout>
+</LinearLayout>
