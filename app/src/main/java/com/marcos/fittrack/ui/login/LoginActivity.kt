@@ -13,6 +13,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.credentials.exceptions.GetCredentialException
@@ -31,7 +32,6 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var etContrasena: EditText
     private lateinit var btnIniciarSesion: Button
     private lateinit var btnGoogle: Button
-    private lateinit var btnApple: Button
     private lateinit var tvIrACrearCuenta: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +42,6 @@ class LoginActivity : AppCompatActivity() {
         etContrasena = findViewById(R.id.etContrasena)
         btnIniciarSesion = findViewById(R.id.btnIniciarSesion)
         btnGoogle = findViewById(R.id.btnGoogle)
-        btnApple = findViewById(R.id.btnApple)
         tvIrACrearCuenta = findViewById(R.id.tvIrACrearCuenta)
 
         montarLogo()
@@ -64,15 +63,20 @@ class LoginActivity : AppCompatActivity() {
                     viewModel.iniciarSesionConGoogle(idToken)
                 } catch (e: GoogleAuthHelper.CancelledException) {
                     // El usuario cerró el selector de cuentas: no hacemos nada.
-                } catch (e: GetCredentialException) {
-                    android.util.Log.e("GoogleLogin", "Error real: ${e.type}", e)
-                    etContrasena.error = "No se pudo iniciar sesión con Google"
+                } catch (e: Exception) {
+                    // Se captura cualquier fallo (no solo GetCredentialException) para
+                    // no dejar el botón "muerto" sin feedback si algo falla, y se usa
+                    // un Toast en vez de etContrasena.error: ese campo no tiene el foco
+                    // aquí, así que el mensaje no llegaba a verse.
+                    val tipo = if (e is GetCredentialException) e.type else e::class.simpleName
+                    android.util.Log.e("GoogleLogin", "Error real: $tipo", e)
+                    Toast.makeText(
+                        this@LoginActivity,
+                        "No se pudo iniciar sesión con Google",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
-        }
-
-        btnApple.setOnClickListener {
-            // TODO: login con Apple
         }
 
         tvIrACrearCuenta.setOnClickListener {

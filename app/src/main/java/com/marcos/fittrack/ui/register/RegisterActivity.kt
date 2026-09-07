@@ -1,9 +1,9 @@
 package com.marcos.fittrack.ui.register
 
-import android.app.DatePickerDialog
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.text.InputType
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
@@ -13,7 +13,9 @@ import android.text.style.StyleSpan
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.credentials.exceptions.GetCredentialException
@@ -22,42 +24,39 @@ import com.marcos.fittrack.R
 import com.marcos.fittrack.data.auth.GoogleAuthHelper
 import com.marcos.fittrack.ui.home.HomeActivity
 import kotlinx.coroutines.launch
-import java.util.Calendar
-import java.util.Locale
 
 class RegisterActivity : AppCompatActivity() {
 
     private val viewModel: RegisterViewModel by viewModels()
 
     private lateinit var etNombre: EditText
-    private lateinit var etFechaNacimiento: EditText
     private lateinit var etCorreo: EditText
     private lateinit var etContrasena: EditText
+    private lateinit var btnMostrarContrasena: ImageButton
     private lateinit var btnRegistrarse: Button
     private lateinit var btnGoogle: Button
-    private lateinit var btnApple: Button
+
+    private var contrasenaVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
         etNombre = findViewById(R.id.etNombre)
-        etFechaNacimiento = findViewById(R.id.etFechaNacimiento)
         etCorreo = findViewById(R.id.etCorreo)
         etContrasena = findViewById(R.id.etContrasena)
+        btnMostrarContrasena = findViewById(R.id.btnMostrarContrasena)
         btnRegistrarse = findViewById(R.id.btnRegistrarse)
         btnGoogle = findViewById(R.id.btnGoogle)
-        btnApple = findViewById(R.id.btnApple)
 
         montarLogo()
         montarDisclaimer()
-        configurarSelectorFecha()
+        configurarMostrarContrasena()
         observarEstado()
 
         btnRegistrarse.setOnClickListener {
             viewModel.registrar(
                 nombre = etNombre.text.toString().trim(),
-                fechaNacimiento = etFechaNacimiento.text.toString().trim(),
                 correo = etCorreo.text.toString().trim(),
                 contrasena = etContrasena.text.toString().trim()
             )
@@ -72,14 +71,18 @@ class RegisterActivity : AppCompatActivity() {
                     viewModel.registrarConGoogle(idToken)
                 } catch (e: GoogleAuthHelper.CancelledException) {
                     // El usuario cerró el selector de cuentas: no hacemos nada.
-                } catch (e: GetCredentialException) {
-                    etContrasena.error = "No se pudo registrar con Google"
+                } catch (e: Exception) {
+                    // Se captura cualquier fallo (no solo GetCredentialException) para
+                    // no dejar el botón "muerto" sin feedback si algo falla.
+                    val tipo = if (e is GetCredentialException) e.type else e::class.simpleName
+                    android.util.Log.e("GoogleRegister", "Error real: $tipo", e)
+                    Toast.makeText(
+                        this@RegisterActivity,
+                        "No se pudo continuar con Google",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
-        }
-
-        btnApple.setOnClickListener {
-            // TODO: registro con Apple
         }
     }
 
@@ -101,29 +104,40 @@ class RegisterActivity : AppCompatActivity() {
                 }
                 is EstadoRegistro.Error -> {
                     btnRegistrarse.isEnabled = true
-                    etContrasena.error = estado.mensaje
+                    mostrarError(estado.mensaje, estado.campo)
                 }
             }
         }
     }
 
-    private fun configurarSelectorFecha() {
-        etFechaNacimiento.setOnClickListener {
-            val calendario = Calendar.getInstance()
-            val anio = calendario.get(Calendar.YEAR)
-            val mes = calendario.get(Calendar.MONTH)
-            val dia = calendario.get(Calendar.DAY_OF_MONTH)
+    /** Muestra el error en el campo al que pertenece (con foco, para que la
+     *  burbuja sea visible); si no es de un campo concreto, usa un Toast. */
+    private fun mostrarError(mensaje: String, campo: CampoRegistro?) {
+        val vistaCampo = when (campo) {
+            CampoRegistro.NOMBRE -> etNombre
+            CampoRegistro.CORREO -> etCorreo
+            CampoRegistro.CONTRASENA -> etContrasena
+            null -> null
+        }
+        if (vistaCampo != null) {
+            vistaCampo.requestFocus()
+            vistaCampo.error = mensaje
+        } else {
+            Toast.makeText(this, mensaje, Toast.LENGTH_LONG).show()
+        }
+    }
 
-            DatePickerDialog(
-                this,
-                { _, anioSel, mesSel, diaSel ->
-                    val fechaFormateada = String.format(
-                        Locale.getDefault(), "%02d/%02d/%04d", diaSel, mesSel + 1, anioSel
-                    )
-                    etFechaNacimiento.setText(fechaFormateada)
-                },
-                anio, mes, dia
-            ).show()
+    private fun configurarMostrarContrasena() {
+        btnMostrarContrasena.setOnClickListener {
+            contrasenaVisible = !contrasenaVisible
+            etContrasena.inputType = if (contrasenaVisible) {
+                btnMostrarContrasena.setImageResource(R.drawable.ic_eye_off)
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            } else {
+                btnMostrarContrasena.setImageResource(R.drawable.ic_eye)
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            }
+            etContrasena.setSelection(etContrasena.text.length)
         }
     }
 

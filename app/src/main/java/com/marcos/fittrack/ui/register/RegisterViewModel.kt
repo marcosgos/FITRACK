@@ -5,15 +5,15 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.marcos.fittrack.data.model.RegisterRequest
 import com.marcos.fittrack.data.repository.UserRepository
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+
+/** Campo al que asociar un error del formulario; null = error general (sin campo concreto). */
+enum class CampoRegistro { NOMBRE, CORREO, CONTRASENA }
 
 sealed class EstadoRegistro {
     object Inicial : EstadoRegistro()
     object Cargando : EstadoRegistro()
     data class Exito(val idUsuario: Int, val nombre: String) : EstadoRegistro()
-    data class Error(val mensaje: String) : EstadoRegistro()
+    data class Error(val mensaje: String, val campo: CampoRegistro? = null) : EstadoRegistro()
 }
 
 class RegisterViewModel : ViewModel() {
@@ -23,27 +23,31 @@ class RegisterViewModel : ViewModel() {
     private val _estadoRegistro = MutableLiveData<EstadoRegistro>(EstadoRegistro.Inicial)
     val estadoRegistro: LiveData<EstadoRegistro> = _estadoRegistro
 
-    fun registrar(nombre: String, fechaNacimiento: String, correo: String, contrasena: String) {
-        if (nombre.isBlank() || fechaNacimiento.isBlank() || correo.isBlank() || contrasena.isBlank()) {
-            _estadoRegistro.value = EstadoRegistro.Error("Rellena todos los campos")
+    // La fecha de nacimiento, el peso y demás datos se piden luego en la
+    // pantalla de perfil, no aquí.
+    fun registrar(nombre: String, correo: String, contrasena: String) {
+        if (nombre.isBlank()) {
+            _estadoRegistro.value = EstadoRegistro.Error("Introduce tu nombre", CampoRegistro.NOMBRE)
             return
         }
-
-        val fechaIso = aFechaIso(fechaNacimiento)
-        if (fechaIso == null) {
-            _estadoRegistro.value = EstadoRegistro.Error("Fecha no válida (usa dd/mm/aaaa)")
+        if (correo.isBlank()) {
+            _estadoRegistro.value = EstadoRegistro.Error("Introduce tu correo", CampoRegistro.CORREO)
+            return
+        }
+        if (contrasena.length < 8) {
+            _estadoRegistro.value = EstadoRegistro.Error(
+                "La contraseña debe tener al menos 8 caracteres",
+                CampoRegistro.CONTRASENA
+            )
             return
         }
 
         _estadoRegistro.value = EstadoRegistro.Cargando
 
-        // La edad la deriva el servidor a partir de date_of_birth.
-        // El peso y demás datos se piden luego en la pantalla de perfil.
         val datos = RegisterRequest(
             name = nombre,
             email = correo,
-            password = contrasena,
-            dateOfBirth = fechaIso
+            password = contrasena
         )
 
         repository.register(
@@ -63,26 +67,5 @@ class RegisterViewModel : ViewModel() {
             onSuccess = { usuario -> _estadoRegistro.value = EstadoRegistro.Exito(usuario.userId, usuario.name) },
             onError = { mensaje -> _estadoRegistro.value = EstadoRegistro.Error(mensaje) }
         )
-    }
-
-    /** Convierte "dd/MM/yyyy" a "yyyy-MM-dd" validando que sea una fecha real
-     *  y con una edad plausible. Devuelve null si no es válida. */
-    private fun aFechaIso(fechaTexto: String): String? {
-        return try {
-            val entrada = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-            entrada.isLenient = false
-            val fecha = entrada.parse(fechaTexto) ?: return null
-
-            val nacimiento = Calendar.getInstance().apply { time = fecha }
-            val hoy = Calendar.getInstance()
-            var edad = hoy.get(Calendar.YEAR) - nacimiento.get(Calendar.YEAR)
-            if (hoy.get(Calendar.DAY_OF_YEAR) < nacimiento.get(Calendar.DAY_OF_YEAR)) edad--
-            if (edad < 0 || edad > 120) return null
-
-            val salida = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            salida.format(fecha)
-        } catch (e: Exception) {
-            null
-        }
     }
 }
