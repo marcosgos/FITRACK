@@ -113,6 +113,8 @@ class UserRepository {
             }
 
             override fun onFailure(call: Call<List<Workout>>, t: Throwable) {
+                android.util.Log.e("UserRepository", "Fallo en getWorkouts", t)
+                onError("No se pudo cargar la actividad")
                 onError("Error de conexión. Revisa tu internet.")
             }
         })

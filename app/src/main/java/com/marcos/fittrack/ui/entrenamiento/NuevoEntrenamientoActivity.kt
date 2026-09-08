@@ -74,7 +74,7 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_nuevo_entrenamiento)
 
-        userId = intent.getIntExtra("userId", -1)
+        userId = intent.getIntExtra("idUsuario", -1)
 
         findViewById<View>(R.id.btnVolver).setOnClickListener { finish() }
 
