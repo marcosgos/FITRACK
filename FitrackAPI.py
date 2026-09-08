@@ -393,6 +393,10 @@ def get_workouts(user_id):
             (user_id,),
         )
         rows = cursor.fetchall()
+
+        # NUEVO: MySQL devuelve BOOLEAN como 0/1 (int), pero el JSON necesita true/false real
+        for fila in rows:
+            fila['is_personal_record'] = bool(fila['is_personal_record'])
     finally:
         cursor.close()
         conn.close()
@@ -421,6 +425,9 @@ def get_workout_detail(user_id, workout_id):
         if workout is None:
             return jsonify({"error": "Workout not found"}), 404
 
+        # NUEVO: misma conversión que en get_workouts
+        workout['is_personal_record'] = bool(workout['is_personal_record'])
+
         cursor.execute(
             "SELECT exercise_id, position, name, sets, reps, weight_kg "
             "FROM workout_exercises WHERE workout_id = %s ORDER BY position",
@@ -438,7 +445,6 @@ def get_workout_detail(user_id, workout_id):
         cursor.close()
         conn.close()
     return jsonify(workout)
-
 
 @app.route('/users/<int:user_id>/workouts', methods=['POST'])
 def add_workout(user_id):
