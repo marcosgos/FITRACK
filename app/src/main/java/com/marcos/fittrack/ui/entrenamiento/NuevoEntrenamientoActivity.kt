@@ -1,14 +1,18 @@
 package com.marcos.fittrack.ui.entrenamiento
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,7 +20,9 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.marcos.fittrack.R
+import com.marcos.fittrack.data.model.WorkoutExercise
 import com.marcos.fittrack.data.model.WorkoutRequest
+import com.marcos.fittrack.ui.ejercicios.EjerciciosActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,7 +31,7 @@ import android.text.Editable
 class NuevoEntrenamientoActivity : AppCompatActivity() {
 
     private enum class Deporte(val typeCode: String) {
-        CARRERA("running"), CICLISMO("cycling"), NATACION("swimming")
+        CARRERA("running"), CICLISMO("cycling"), NATACION("swimming"), FUERZA("strength")
     }
 
     private val viewModel: NuevoEntrenamientoViewModel by viewModels()
@@ -82,6 +88,7 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
         configurarCarrera()
         configurarCiclismo()
         configurarNatacion()
+        configurarFuerza()
         configurarGuardar()
         observarEstado()
 
@@ -94,6 +101,7 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
         findViewById<Button>(R.id.chipCarrera).setOnClickListener { seleccionarDeporte(Deporte.CARRERA) }
         findViewById<Button>(R.id.chipCiclismo).setOnClickListener { seleccionarDeporte(Deporte.CICLISMO) }
         findViewById<Button>(R.id.chipNatacion).setOnClickListener { seleccionarDeporte(Deporte.NATACION) }
+        findViewById<Button>(R.id.chipFuerza).setOnClickListener { seleccionarDeporte(Deporte.FUERZA) }
     }
 
     private fun seleccionarDeporte(deporte: Deporte) {
@@ -102,7 +110,8 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
         val mapaChips = mapOf(
             Deporte.CARRERA to R.id.chipCarrera,
             Deporte.CICLISMO to R.id.chipCiclismo,
-            Deporte.NATACION to R.id.chipNatacion
+            Deporte.NATACION to R.id.chipNatacion,
+            Deporte.FUERZA to R.id.chipFuerza
         )
         mapaChips.forEach { (d, idBoton) ->
             findViewById<Button>(idBoton).backgroundTintList = android.content.res.ColorStateList.valueOf(
@@ -113,6 +122,7 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
         findViewById<View>(R.id.groupCarrera).visibility = if (deporte == Deporte.CARRERA) View.VISIBLE else View.GONE
         findViewById<View>(R.id.groupCiclismo).visibility = if (deporte == Deporte.CICLISMO) View.VISIBLE else View.GONE
         findViewById<View>(R.id.groupNatacion).visibility = if (deporte == Deporte.NATACION) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.groupFuerza).visibility = if (deporte == Deporte.FUERZA) View.VISIBLE else View.GONE
     }
 
     // ---------- CARRERA ----------
@@ -340,6 +350,80 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
         findViewById<View>(R.id.rowPausarFinalizarNatacion).visibility = View.GONE
     }
 
+    // ---------- FUERZA ----------
+
+    private fun configurarFuerza() {
+        findViewById<View>(R.id.btnVerEjerciciosReferencia).setOnClickListener {
+            startActivity(Intent(this, EjerciciosActivity::class.java))
+        }
+
+        findViewById<View>(R.id.btnAnadirEjercicio).setOnClickListener {
+            val contenedor = findViewById<LinearLayout>(R.id.contenedorEjercicios)
+            val fila = LayoutInflater.from(this).inflate(R.layout.item_ejercicio_fuerza, contenedor, false)
+            configurarFilaEjercicio(fila)
+            contenedor.addView(fila)
+        }
+
+        findViewById<Switch>(R.id.switchPR).setOnCheckedChangeListener { _, marcado ->
+            findViewById<View>(R.id.groupCamposPR).visibility = if (marcado) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun configurarFilaEjercicio(fila: View) {
+        val tvSeries = fila.findViewById<TextView>(R.id.tvSeriesValor)
+        val tvReps = fila.findViewById<TextView>(R.id.tvRepsValor)
+        val tvPeso = fila.findViewById<TextView>(R.id.tvPesoValor)
+
+        fila.findViewById<Button>(R.id.btnSeriesMenos).setOnClickListener {
+            val valor = tvSeries.text.toString().toIntOrNull() ?: 1
+            tvSeries.text = (valor - 1).coerceAtLeast(1).toString()
+        }
+        fila.findViewById<Button>(R.id.btnSeriesMas).setOnClickListener {
+            val valor = tvSeries.text.toString().toIntOrNull() ?: 1
+            tvSeries.text = (valor + 1).coerceAtMost(20).toString()
+        }
+        fila.findViewById<Button>(R.id.btnRepsMenos).setOnClickListener {
+            val valor = tvReps.text.toString().toIntOrNull() ?: 1
+            tvReps.text = (valor - 1).coerceAtLeast(1).toString()
+        }
+        fila.findViewById<Button>(R.id.btnRepsMas).setOnClickListener {
+            val valor = tvReps.text.toString().toIntOrNull() ?: 1
+            tvReps.text = (valor + 1).coerceAtMost(100).toString()
+        }
+        fila.findViewById<Button>(R.id.btnPesoMenos).setOnClickListener {
+            val valor = tvPeso.text.toString().toIntOrNull() ?: 0
+            tvPeso.text = (valor - 5).coerceAtLeast(0).toString()
+        }
+        fila.findViewById<Button>(R.id.btnPesoMas).setOnClickListener {
+            val valor = tvPeso.text.toString().toIntOrNull() ?: 0
+            tvPeso.text = (valor + 5).toString()
+        }
+        fila.findViewById<Button>(R.id.btnEliminarEjercicio).setOnClickListener {
+            findViewById<LinearLayout>(R.id.contenedorEjercicios).removeView(fila)
+        }
+    }
+
+    /** Lee las filas ya añadidas al contenedor; descarta las que se dejaron sin nombre. */
+    private fun leerEjerciciosFuerza(): List<WorkoutExercise> {
+        val contenedor = findViewById<LinearLayout>(R.id.contenedorEjercicios)
+        val lista = mutableListOf<WorkoutExercise>()
+        for (i in 0 until contenedor.childCount) {
+            val fila = contenedor.getChildAt(i)
+            val nombre = fila.findViewById<EditText>(R.id.etNombreEjercicio).text.toString().trim()
+            if (nombre.isBlank()) continue
+            lista.add(
+                WorkoutExercise(
+                    position = lista.size + 1,
+                    name = nombre,
+                    sets = fila.findViewById<TextView>(R.id.tvSeriesValor).text.toString().toIntOrNull() ?: 0,
+                    reps = fila.findViewById<TextView>(R.id.tvRepsValor).text.toString().toIntOrNull() ?: 0,
+                    weightKg = fila.findViewById<TextView>(R.id.tvPesoValor).text.toString().toDoubleOrNull() ?: 0.0
+                )
+            )
+        }
+        return lista
+    }
+
     // ---------- GUARDAR ----------
 
     private fun configurarGuardar() {
@@ -390,6 +474,21 @@ class NuevoEntrenamientoActivity : AppCompatActivity() {
                         poolLengths = largos,
                         poolLengthM = longitud,
                         swolf = findViewById<EditText>(R.id.etSwolfNatacion).text.toString().toIntOrNull()
+                    )
+                }
+                Deporte.FUERZA -> {
+                    val minutos = findViewById<EditText>(R.id.etDuracionFuerza).text.toString().toIntOrNull() ?: 0
+                    val esPR = findViewById<Switch>(R.id.switchPR).isChecked
+                    WorkoutRequest(
+                        typeCode = Deporte.FUERZA.typeCode,
+                        startedAt = ahora,
+                        durationSeconds = minutos * 60,
+                        avgHeartRate = leerFcMedia(R.id.fcManualFuerza),
+                        maxHeartRate = leerFcMaxima(R.id.fcManualFuerza),
+                        isPersonalRecord = esPR,
+                        prExercise = if (esPR) findViewById<EditText>(R.id.etEjercicioPR).text.toString().trim().ifBlank { null } else null,
+                        prResult = if (esPR) findViewById<EditText>(R.id.etMarcaPR).text.toString().trim().ifBlank { null } else null,
+                        exercises = leerEjerciciosFuerza()
                     )
                 }
             }

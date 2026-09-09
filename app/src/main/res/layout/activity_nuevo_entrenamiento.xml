@@ -121,6 +121,28 @@
                     app:elevation="0dp" />
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="24dp">
+
+                <Button
+                    android:id="@+id/chipFuerza"
+                    style="?attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="Fuerza"
+                    android:textAllCaps="false"
+                    android:textSize="12sp"
+                    android:textColor="#FFFFFF"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:backgroundTint="@color/fittrack_chip_bg"
+                    app:cornerRadius="20dp"
+                    app:elevation="0dp" />
+            </LinearLayout>
+
             <!-- ===================== PANEL CARRERA/ANDAR ===================== -->
             <LinearLayout
                 android:id="@+id/groupCarrera"
@@ -442,6 +464,201 @@
 
                 <include layout="@layout/bloque_fc_manual"
                     android:id="@+id/fcManualNatacion" />
+            </LinearLayout>
+
+            <!-- ===================== PANEL FUERZA ===================== -->
+            <LinearLayout
+                android:id="@+id/groupFuerza"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <!-- DURACION MANUAL -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Duración"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:background="@drawable/bg_input_outline"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="14dp"
+                    android:layout_marginBottom="16dp">
+
+                    <EditText
+                        android:id="@+id/etDuracionFuerza"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@null"
+                        android:hint="45"
+                        android:textColorHint="@color/fittrack_hint_gray"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:inputType="number"
+                        android:maxLength="3" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="minutos"
+                        android:textColor="@color/fittrack_text_gray"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <include layout="@layout/bloque_fc_manual"
+                    android:id="@+id/fcManualFuerza" />
+
+                <!-- EJERCICIOS -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Ejercicios de fuerza"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/btnVerEjerciciosReferencia"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_card_dark"
+                    android:drawablePadding="10dp"
+                    android:gravity="center"
+                    android:text="Consultar ejercicios orientativos"
+                    android:textColor="@color/fittrack_text_gray"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="14dp" />
+
+                <LinearLayout
+                    android:id="@+id/contenedorEjercicios"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/btnAnadirEjercicio"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_input_outline"
+                    android:gravity="center"
+                    android:text="+  Añadir ejercicio"
+                    android:textColor="@color/fittrack_red"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="20dp" />
+
+                <!-- PR / MARCA PERSONAL -->
+                <LinearLayout
+                    android:id="@+id/groupPR"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_input_outline"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <Switch
+                            android:id="@+id/switchPR"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="¿Es un PR / marca personal?"
+                                android:textColor="#FFFFFF"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Registra tu récord en este entreno"
+                                android:textColor="@color/fittrack_text_gray"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/groupCamposPR"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="14dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="EJERCICIO"
+                            android:textColor="@color/fittrack_text_gray"
+                            android:textSize="11sp"
+                            android:layout_marginBottom="6dp" />
+
+                        <EditText
+                            android:id="@+id/etEjercicioPR"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/bg_input_outline"
+                            android:hint="Sentadilla"
+                            android:textColorHint="@color/fittrack_hint_gray"
+                            android:textColor="#FFFFFF"
+                            android:paddingHorizontal="12dp"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="MARCA"
+                            android:textColor="@color/fittrack_text_gray"
+                            android:textSize="11sp"
+                            android:layout_marginBottom="6dp" />
+
+                        <EditText
+                            android:id="@+id/etMarcaPR"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/bg_input_outline"
+                            android:hint="100 kg · 1 rep"
+                            android:textColorHint="@color/fittrack_hint_gray"
+                            android:textColor="#FFFFFF"
+                            android:paddingHorizontal="12dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
             </LinearLayout>
 
         </LinearLayout>
