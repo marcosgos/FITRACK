@@ -32,6 +32,9 @@ interface ApiService {
     @POST("users")
     fun register(@Body request: RegisterRequest): Call<IdResponse>
 
+    @GET("users/{id}")
+    fun getUser(@Path("id") userId: Int): Call<User>
+
     @PATCH("users/{id}")
     fun updateProfile(@Path("id") userId: Int, @Body request: ProfileUpdateRequest): Call<Map<String, Any>>
 

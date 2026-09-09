@@ -84,6 +84,24 @@ class UserRepository {
         })
     }
 
+    fun getUser(
+        userId: Int,
+        onSuccess: (User) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        ApiClient.api.getUser(userId).enqueue(object : Callback<User> {
+            override fun onResponse(call: Call<User>, response: Response<User>) {
+                val user = response.body()
+                if (response.isSuccessful && user != null) onSuccess(user)
+                else onError("No se pudo cargar tu perfil")
+            }
+
+            override fun onFailure(call: Call<User>, t: Throwable) {
+                onError("Error de conexión. Revisa tu internet.")
+            }
+        })
+    }
+
     fun updateProfile(
         userId: Int,
         data: ProfileUpdateRequest,

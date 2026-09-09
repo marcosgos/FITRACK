@@ -19,6 +19,7 @@ import com.marcos.fittrack.ui.entrenamiento.NuevoEntrenamientoActivity
 import java.text.SimpleDateFormat
 import java.util.Locale
 import com.marcos.fittrack.ui.ejercicios.EjerciciosActivity
+import com.marcos.fittrack.ui.perfil.DatosPersonalesActivity
 
 class HomeActivity : AppCompatActivity() {
 
@@ -86,7 +87,9 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btnAjustes).setOnClickListener {
-            // TODO: abrir ajustes
+            val intent = Intent(this, DatosPersonalesActivity::class.java)
+            intent.putExtra("idUsuario", idUsuario)
+            startActivity(intent)
         }
 
         findViewById<View>(R.id.cardExplorarEjercicios).setOnClickListener {

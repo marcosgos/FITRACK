@@ -35,6 +35,9 @@
             android:name=".ui.home.HomeActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.perfil.DatosPersonalesActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.entrenamiento.NuevoEntrenamientoActivity"
             android:exported="false" />
         <activity

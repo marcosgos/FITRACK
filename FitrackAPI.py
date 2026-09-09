@@ -81,6 +81,17 @@ def with_age(user):
     return user
 
 
+MIN_AGE_YEARS = 18
+
+
+def is_adult(date_of_birth):
+    """True if a 'YYYY-MM-DD' date of birth (or None) is 18+ years old.
+    None is treated as valid here — required-ness is enforced separately;
+    this only rejects an underage date when one is actually provided."""
+    age = compute_age(date_of_birth)
+    return age is None or age >= MIN_AGE_YEARS
+
+
 # ---------------------------------------------------------------------
 #  Auth
 # ---------------------------------------------------------------------
@@ -213,6 +224,9 @@ def add_user():
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
+    if not is_adult(body.get('date_of_birth')):
+        return jsonify({"error": f"You must be at least {MIN_AGE_YEARS} years old"}), 400
+
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -251,6 +265,9 @@ def update_user(user_id):
 
     if not updates:
         return jsonify({"error": "No updatable fields provided"}), 400
+
+    if 'date_of_birth' in updates and not is_adult(updates['date_of_birth']):
+        return jsonify({"error": f"You must be at least {MIN_AGE_YEARS} years old"}), 400
 
     set_clause = ", ".join(f"{col} = %s" for col in updates)
     values = list(updates.values()) + [user_id]
@@ -343,8 +360,16 @@ def add_weight(user_id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # One weigh-in per user per day (uq_user_weight_date): re-saving the
+        # same day (e.g. re-saving the personal-data screen) updates it
+        # instead of failing with a duplicate-key error.
+        # `weight_log_id = LAST_INSERT_ID(weight_log_id)` keeps cursor.lastrowid
+        # pointing at the existing row on the update path too (plain ON DUPLICATE
+        # KEY UPDATE would otherwise leave lastrowid at 0 when no row is inserted).
         cursor.execute(
-            "INSERT INTO weight_history (user_id, weight_kg, recorded_on) VALUES (%s, %s, %s)",
+            "INSERT INTO weight_history (user_id, weight_kg, recorded_on) VALUES (%s, %s, %s) "
+            "ON DUPLICATE KEY UPDATE weight_kg = VALUES(weight_kg), "
+            "weight_log_id = LAST_INSERT_ID(weight_log_id)",
             (user_id, body['weight_kg'], body['recorded_on']),
         )
         conn.commit()
