@@ -20,6 +20,12 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import com.marcos.fittrack.ui.ejercicios.EjerciciosActivity
 import com.marcos.fittrack.ui.perfil.DatosPersonalesActivity
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
+import com.marcos.fittrack.data.util.PasosRepositorio
+import com.marcos.fittrack.service.ContadorPasosService
 
 class HomeActivity : AppCompatActivity() {
 
@@ -38,7 +44,8 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var contenedorHistorial: LinearLayout
     private lateinit var tvConsejoDia: TextView
     private lateinit var tvTotalEjercicios: TextView
-
+    private lateinit var tvBadgeModo: TextView
+    private lateinit var tvTiempoMedio: TextView
     private val metaPasosPorDefecto = 10000
 
     private val lanzadorNuevoEntrenamiento =
@@ -48,6 +55,22 @@ class HomeActivity : AppCompatActivity() {
                 viewModel.cargarDatos(idUsuario)
             }
         }
+
+    private val permisosPasos: Array<String>
+        get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            arrayOf(Manifest.permission.ACTIVITY_RECOGNITION)
+        }
+
+    private val lanzadorPermisosPasos = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { resultados ->
+        if (resultados.values.all { it }) {
+            iniciarServicioPasos()
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,6 +91,14 @@ class HomeActivity : AppCompatActivity() {
         contenedorHistorial = findViewById(R.id.contenedorHistorial)
         tvConsejoDia = findViewById(R.id.tvConsejoDia)
         tvTotalEjercicios = findViewById(R.id.tvTotalEjercicios)
+        tvTiempoMedio = findViewById(R.id.tvTiempoMedio)
+        tvBadgeModo = findViewById(R.id.tvBadgeModo)
+        comprobarYArrancarContadorPasos()
+
+        PasosRepositorio.pasosHoy.observe(this) { pasos ->
+            montarPasos(pasos)
+        }
+
 
         montarLogo()
         tvSaludo.text = "Buenas, $nombre"
@@ -136,19 +167,49 @@ class HomeActivity : AppCompatActivity() {
             tvNumeroEntrenos.text = entrenamientos.size.toString()
 
             val minutosTotales = entrenamientos.sumOf { it.durationSeconds / 60 }
-            tvTiempoTotal.text = if (minutosTotales >= 60) {
-                "${minutosTotales / 60}h${String.format("%02d", minutosTotales % 60)}"
-            } else {
-                "$minutosTotales min"
-            }
+            tvTiempoTotal.text = formatearMinutos(minutosTotales)
+
+            val minutosMedios = minutosTotales / entrenamientos.size
+            tvTiempoMedio.text = formatearMinutos(minutosMedios)
         }
+    }
+
+    private fun formatearMinutos(minutos: Int): String {
+        return if (minutos >= 60) "${minutos / 60}h${String.format("%02d", minutos % 60)}" else "$minutos min"
     }
 
     private fun montarPasos(pasosHoy: Int) {
         val porcentaje = ((pasosHoy.toFloat() / metaPasosPorDefecto) * 100).toInt().coerceAtMost(100)
         tvPorcentajePasos.text = "$porcentaje%"
         tvPasosHoy.text = "${"%,d".format(pasosHoy).replace(",", ".")} pasos hoy"
+
+        val sensorManager = getSystemService(SENSOR_SERVICE) as android.hardware.SensorManager
+        val hayCensor = sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_STEP_COUNTER) != null
+
+        if (hayCensor) {
+            tvBadgeModo.text = "●  Sensor de pasos activo"
+        } else {
+            tvBadgeModo.text = "●  Modo simulado · sin sensor"
+        }
     }
+
+
+    private fun comprobarYArrancarContadorPasos() {
+        val faltan = permisosPasos.any {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (faltan) {
+            lanzadorPermisosPasos.launch(permisosPasos)
+        } else {
+            iniciarServicioPasos()
+        }
+    }
+
+    private fun iniciarServicioPasos() {
+        val intent = Intent(this, ContadorPasosService::class.java)
+        ContextCompat.startForegroundService(this, intent)
+    }
+
 
     private fun montarHistorial(entrenamientos: List<Workout>) {
         contenedorHistorial.removeAllViews()
